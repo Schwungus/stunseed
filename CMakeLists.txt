@@ -38,14 +38,14 @@ set_target_properties(stunseed PROPERTIES LINKER_LANGUAGE CXX)
 
 FetchContent_Declare(S_tructures
     GIT_REPOSITORY https://github.com/Schwungus/S_tructures.git
-    GIT_TAG master) # TODO: pin
+    GIT_TAG 68687ff21b59a5dcdcc6d7c200426e1e561cfd24)
 list(APPEND LIBS S_tructures)
 
 ## bq_websocket lets us abuse webtorrent trackers for FREE signalling
 
 FetchContent_Declare(bq_websocket
     GIT_REPOSITORY https://github.com/Schwungus/bq_websocket.git
-    GIT_TAG master) # TODO: pin
+    GIT_TAG 6929eaf0c3a4d6a98a83d7b4f8fb9779fb54de91)
 list(APPEND LIBS bq_websocket)
 
 ## yyjson for forging packets to achieve the aforementioned FREE signalling
@@ -79,7 +79,7 @@ endif()
 ## actually linking against those libs
 
 FetchContent_MakeAvailable(S_tructures datachannel yyjson bq_websocket)
-target_link_libraries(stunseed PRIVATE ${LIBS})
+target_link_libraries(stunseed PUBLIC ${LIBS})
 
 # test-binary definition
 
