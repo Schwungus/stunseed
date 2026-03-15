@@ -30,6 +30,15 @@ void stunseed_kill_tracker_sock() {
 	}
 }
 
+static void log_bqws_error() {
+	bqws_pt_error error = {0};
+	if (bqws_pt_get_error(&error)) {
+		stunseed_warn("(%s) %s: %s", bqws_pt_error_type_str(error.type), error.function,
+			bqws_pt_error_code_str(error.data));
+		bqws_pt_clear_error();
+	}
+}
+
 static void stunseed_prepare(const char* secret, int mode) {
 	stunseed_init();
 	stunseed_mode = mode;
@@ -39,6 +48,7 @@ static void stunseed_prepare(const char* secret, int mode) {
 
 	stunseed_kill_tracker_sock();
 	stunseed_tracker_sock = bqws_pt_connect(STUNSEED_DEFAULT_TRACKER, NULL, NULL, NULL);
+	log_bqws_error();
 }
 
 /* static void stunseed_mangle_lobby_secret(stunseed_peer_info* peer, const char* secret) {
@@ -84,6 +94,7 @@ void stunseed_echo() {
 void stunseed_update() {
 	if (stunseed_tracker_sock)
 		bqws_update(stunseed_tracker_sock);
+	log_bqws_error();
 
 	bqws_msg* msg = NULL;
 	while (stunseed_tracker_sock && (msg = bqws_recv(stunseed_tracker_sock))) {
