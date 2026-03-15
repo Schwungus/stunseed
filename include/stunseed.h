@@ -17,15 +17,12 @@ extern "C" {
 /// Maximum amount of simultaneous peer connections supported.
 #define STUNSEED_MAX_PEERS (32)
 
-/// Maximum amount of lobbies that can be returned from `stunseed_get_lobbies()`.
-#define STUNSEED_MAX_LOBBIES (16)
-
 /// The default STUN server to use.
 #define STUNSEED_DEFAULT_STUN "stun.l.google.com:19302"
 
 /// The default torrent tracker to leech into for WebRTC signalling.
 // #define STUNSEED_DEFAULT_TRACKER "wss://tracker.openwebtorrent.com"
-#define STUNSEED_DEFAULT_TRACKER "wss://echo.websocket.org"
+#define STUNSEED_DEFAULT_TRACKER "wss://ws.postman-echo.com/raw"
 
 // ----------- //
 // AUXILIARIES //
@@ -111,6 +108,13 @@ void stunseed_log(stunseed_log_level, const char*, ...);
 
 #define stunseed_info(...) stunseed_log(STUNSEED_LOG_INFO, __VA_ARGS__)
 #define stunseed_warn(...) stunseed_log(STUNSEED_LOG_WARN, __VA_ARGS__)
+
+// ----- //
+// UTILS //
+// ----- //
+
+/// Compute a file's basename (file name without directory).
+const char* stunseed_basename(const char* path);
 
 #ifdef __cplusplus
 }

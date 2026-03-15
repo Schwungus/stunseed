@@ -24,20 +24,21 @@ typedef struct {
 static bqws_socket* stunseed_tracker_sock = NULL;
 
 void stunseed_kill_tracker_sock() {
-	if (stunseed_tracker_sock) {
-		bqws_free_socket(stunseed_tracker_sock);
-		stunseed_tracker_sock = NULL;
-	}
+	bqws_free_socket(stunseed_tracker_sock);
+	stunseed_tracker_sock = NULL;
 }
 
-static void log_bqws_error() {
+static void log_bqws_error_fr(const char* file, int line) {
 	bqws_pt_error error = {0};
 	if (bqws_pt_get_error(&error)) {
-		stunseed_warn("(%s) %s: %s", bqws_pt_error_type_str(error.type), error.function,
-			bqws_pt_error_code_str(error.data));
+		const char* type = bqws_pt_error_type_str(error.type);
+		file = stunseed_basename(file);
+		stunseed_warn("[%s:%d] %s: %d", file, line, error.function, error.data);
 		bqws_pt_clear_error();
 	}
 }
+
+#define log_bqws_error() log_bqws_error_fr(__FILE__, __LINE__)
 
 static void stunseed_prepare(const char* secret, int mode) {
 	stunseed_init();

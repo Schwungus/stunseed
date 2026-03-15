@@ -20,7 +20,11 @@ void stunseed_init() {
 		return;
 	stunseed_init_done = true;
 
-	bqws_pt_init(NULL);
+	bqws_pt_init_opts opts = {0};
+#ifndef __EMSCRIPTEN__
+	opts.ca_filename = "cacert.pem";
+#endif
+	bqws_pt_init(&opts);
 
 	// future me, please take note of this...
 	struct timespec ts = {0};
