@@ -25,3 +25,20 @@ AccessModifierOffset: -8
 IndentCaseBlocks: false
 IndentCaseLabels: false
 RemoveBracesLLVM: true
+ForEachMacros: [ST_FOREACH]
+IncludeBlocks: Regroup
+IncludeIsMainRegex: "a{999}" # no main includes
+SortIncludes: CaseSensitive
+IncludeCategories:
+  - Regex: "^<(std|str|time)"
+    Priority: 0
+  - Regex: "^<rtc"
+    Priority: 10
+  - Regex: "^<bq"
+    Priority: 20
+  - Regex: "^<"
+    Priority: 50
+  - Regex: '^"'
+    Priority: 100
+  - Regex: "^.*$"
+    Priority: 1000

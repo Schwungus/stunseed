@@ -1,4 +1,0 @@
-If:
-  PathMatch: include/stunseed\.h
-CompileFlags:
-  Add: [-DSTUNSEED_IMPLEMENTATION]

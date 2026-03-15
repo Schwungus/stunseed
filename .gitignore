@@ -1,6 +1,5 @@
 /build*
 /.cache
-/*.bat
 /compile_commands.json
 /__cmake*
 log*.txt
