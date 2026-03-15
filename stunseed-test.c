@@ -6,7 +6,10 @@
 #define LOBBY_ID "ABCDEFGH"
 
 static void tracer(stunseed_log_level level, const char* buf) {
-	(void)level, TraceLog(LOG_INFO, "%s", buf);
+	int rl_level = LOG_INFO;
+	if (level != STUNSEED_LOG_INFO)
+		rl_level = LOG_WARNING;
+	TraceLog(rl_level, "%s", buf);
 }
 
 int main(int argc, char* argv[]) {
