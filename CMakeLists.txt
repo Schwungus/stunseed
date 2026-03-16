@@ -40,13 +40,6 @@ FetchContent_Declare(cacert
     URL https://curl.se/ca/cacert.pem
     DOWNLOAD_NO_EXTRACT ON)
 
-## S_tructures for hashmaps
-
-FetchContent_Declare(S_tructures
-    GIT_REPOSITORY https://github.com/Schwungus/S_tructures.git
-    GIT_TAG 68687ff21b59a5dcdcc6d7c200426e1e561cfd24)
-list(APPEND LIBS S_tructures)
-
 ## bq_websocket lets us abuse webtorrent trackers for FREE signalling
 
 FetchContent_Declare(bq_websocket
@@ -88,7 +81,7 @@ endif()
 
 ## actually linking against those libs
 
-FetchContent_MakeAvailable(S_tructures datachannel yyjson bq_websocket)
+FetchContent_MakeAvailable(datachannel yyjson bq_websocket)
 target_link_libraries(stunseed PUBLIC ${LIBS})
 
 # test-binary definition

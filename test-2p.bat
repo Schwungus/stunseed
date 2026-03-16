@@ -1,5 +1,5 @@
 @echo off
 
 cd build
-start stunseed-test.exe
-start stunseed-test.exe
+start cmd /c stunseed-test.exe ^& pause
+start cmd /c stunseed-test.exe ^& pause

@@ -21,8 +21,7 @@ extern "C" {
 #define STUNSEED_DEFAULT_STUN "stun.l.google.com:19302"
 
 /// The default torrent tracker to leech into for WebRTC signalling.
-// #define STUNSEED_DEFAULT_TRACKER "wss://tracker.openwebtorrent.com"
-#define STUNSEED_DEFAULT_TRACKER "wss://echo.websocket.org"
+#define STUNSEED_DEFAULT_TRACKER "wss://tracker.openwebtorrent.com"
 
 // ----------- //
 // AUXILIARIES //
@@ -50,6 +49,12 @@ void stunseed_echo();
 // PEERS //
 // ----- //
 
+/// An internal struct for peer-related data.
+typedef struct {
+	void* glue;
+	char* sdp;
+} stunseed_peer_info;
+
 /// A unique identifier for a peer within a session, including ourselves.
 typedef char stunseed_peer_id[4];
 
@@ -70,15 +75,10 @@ void stunseed_peer_set(const char* name, int size, const void* data);
 typedef char stunseed_lobby_secret[16];
 
 /// Initiate a P2P session for `count` players with a specified secret.
-///
-/// Calls `stunseed_set_max_peers(count)` under the hood.
 void stunseed_host(const char* secret, int count);
 
 /// Join a P2P session by its secret.
 void stunseed_join(const char* secret);
-
-/// Set the amount of peers we are ready to accomodate for our session.
-void stunseed_set_max_peers(int count);
 
 // ------- //
 // LOGGING //
