@@ -40,13 +40,6 @@ FetchContent_Declare(cacert
     URL https://curl.se/ca/cacert.pem
     DOWNLOAD_NO_EXTRACT ON)
 
-## bq_websocket lets us abuse webtorrent trackers for FREE signalling
-
-FetchContent_Declare(bq_websocket
-    GIT_REPOSITORY https://github.com/Schwungus/bq_websocket.git
-    GIT_TAG 1d575bb1d2849949bec8ed538737dd1a6780490f)
-list(APPEND LIBS bq_websocket)
-
 ## yyjson for forging packets to achieve the aforementioned FREE signalling
 
 FetchContent_Declare(yyjson
@@ -81,7 +74,7 @@ endif()
 
 ## actually linking against those libs
 
-FetchContent_MakeAvailable(datachannel yyjson bq_websocket)
+FetchContent_MakeAvailable(datachannel yyjson)
 target_link_libraries(stunseed PUBLIC ${LIBS})
 
 # test-binary definition

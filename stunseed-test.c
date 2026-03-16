@@ -33,8 +33,6 @@ int main(int argc, char* argv[]) {
 		if (IsKeyPressed(KEY_J))
 			stunseed_join(LOBBY_ID);
 
-		stunseed_update();
-
 		BeginDrawing();
 		ClearBackground(RAYWHITE);
 		DrawText(TextFormat("we are ID=%s", stunseed_get_our_id()), 5, 5, 30, BLACK);

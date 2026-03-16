@@ -2,9 +2,6 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include <bq_websocket.h>
-#include <bq_websocket_platform.h>
-
 #include "stunseed.h"
 
 static bool stunseed_init_done = false;
@@ -19,12 +16,6 @@ void stunseed_init() {
 	if (stunseed_init_done)
 		return;
 	stunseed_init_done = true;
-
-	bqws_pt_init_opts opts = {0};
-#ifndef __EMSCRIPTEN__
-	opts.ca_filename = "cacert.pem";
-#endif
-	bqws_pt_init(&opts);
 
 	// future me, please take note of this...
 	struct timespec ts = {0};
@@ -46,8 +37,6 @@ void stunseed_init() {
 void stunseed_shutdown() {
 	extern void stunseed_kill_tracker_sock();
 	stunseed_kill_tracker_sock();
-
-	bqws_pt_shutdown();
 
 	stunseed_info("stunseed out!");
 }

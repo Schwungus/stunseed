@@ -21,7 +21,9 @@ extern "C" {
 #define STUNSEED_DEFAULT_STUN "stun.l.google.com:19302"
 
 /// The default torrent tracker to leech into for WebRTC signalling.
-#define STUNSEED_DEFAULT_TRACKER "wss://tracker.openwebtorrent.com"
+// #define STUNSEED_DEFAULT_TRACKER "wss://tracker.openwebtorrent.com"
+// #define STUNSEED_DEFAULT_TRACKER "wss://echo.websocket.org"
+#define STUNSEED_DEFAULT_TRACKER "wss://ws.postman-echo.com/raw"
 
 // ----------- //
 // AUXILIARIES //
@@ -38,9 +40,6 @@ void stunseed_init();
 
 /// Call this once before exiting the program to clean up after stunseed.
 void stunseed_shutdown();
-
-/// Call this every frame to do networking. That's as much as I'm able to explain for now.
-void stunseed_update();
 
 /// uhh...
 void stunseed_echo();
