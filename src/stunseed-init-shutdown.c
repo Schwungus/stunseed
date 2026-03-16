@@ -32,7 +32,7 @@ void stunseed_init() {
 	srand(ts.tv_sec * 1000000000 + ts.tv_nsec);
 
 	for (int i = 0; i < sizeof(stunseed_peer_id); i++)
-		stunseed_our_id[i] = 'A' + (char)(rand() % 26);
+		stunseed_our_id[i] = (char)('A' + (rand() % 26));
 
 	extern void stunseed_glue_set_rtc_logger();
 	stunseed_glue_set_rtc_logger();

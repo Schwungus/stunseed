@@ -4,7 +4,7 @@
 
 static rtc::Configuration stunseed_rtc_config;
 
-static void stunseed_rtc_log(rtc::LogLevel level, std::string line) {
+static void stunseed_rtc_log(rtc::LogLevel level, const std::string& line) {
 	stunseed_log_level log_level = stunseed_log_level::STUNSEED_LOG_INFO;
 
 	if (level != rtc::LogLevel::Info)

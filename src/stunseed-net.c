@@ -41,6 +41,8 @@ static void log_bqws_error_fr(const char* file, int line) {
 #define log_bqws_error() log_bqws_error_fr(__FILE__, __LINE__)
 
 static void stunseed_prepare(const char* secret, int mode) {
+	(void)secret;
+
 	stunseed_init();
 	stunseed_mode = mode;
 
