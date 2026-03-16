@@ -107,4 +107,6 @@ void stunseed_update() {
 	skip:
 		bqws_free_msg(msg);
 	}
+
+	log_bqws_error();
 }
