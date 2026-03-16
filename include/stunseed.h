@@ -22,7 +22,7 @@ extern "C" {
 
 /// The default torrent tracker to leech into for WebRTC signalling.
 // #define STUNSEED_DEFAULT_TRACKER "wss://tracker.openwebtorrent.com"
-#define STUNSEED_DEFAULT_TRACKER "wss://ws.postman-echo.com/raw"
+#define STUNSEED_DEFAULT_TRACKER "wss://echo.websocket.org"
 
 // ----------- //
 // AUXILIARIES //

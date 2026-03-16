@@ -51,7 +51,7 @@ list(APPEND LIBS S_tructures)
 
 FetchContent_Declare(bq_websocket
     GIT_REPOSITORY https://github.com/Schwungus/bq_websocket.git
-    GIT_TAG 28322b59a6e741010da5abe1c940053daf2c0480)
+    GIT_TAG 1d575bb1d2849949bec8ed538737dd1a6780490f)
 list(APPEND LIBS bq_websocket)
 
 ## yyjson for forging packets to achieve the aforementioned FREE signalling
