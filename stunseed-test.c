@@ -13,6 +13,8 @@ static void tracer(stunseed_log_level level, const char* buf) {
 }
 
 int main(int argc, char* argv[]) {
+	(void)argc, (void)argv;
+
 	InitWindow(800, 600, "stunseed");
 	stunseed_set_logger(tracer);
 

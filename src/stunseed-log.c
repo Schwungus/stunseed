@@ -10,7 +10,7 @@ void stunseed_set_logger(stunseed_logger new_logger) {
 }
 
 void stunseed_log(stunseed_log_level level, const char* line, ...) {
-	va_list args;
+	va_list args = {0};
 	va_start(args, line);
 	stunseed_log_v(level, line, args);
 	va_end(args);
