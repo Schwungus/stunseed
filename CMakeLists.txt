@@ -34,12 +34,6 @@ set_target_properties(stunseed PROPERTIES LINKER_LANGUAGE CXX)
 
 # external deps
 
-## CA cert bundle for WSS on the native targets
-
-FetchContent_Declare(cacert
-    URL https://curl.se/ca/cacert.pem
-    DOWNLOAD_NO_EXTRACT ON)
-
 ## yyjson for forging packets to achieve the aforementioned FREE signalling
 
 FetchContent_Declare(yyjson
@@ -66,10 +60,6 @@ else()
         GIT_REPOSITORY https://github.com/paullouisageneau/libdatachannel.git
         GIT_TAG v0.24.1)
     list(APPEND LIBS datachannel-static)
-
-    FetchContent_MakeAvailable(cacert)
-    add_custom_command(TARGET stunseed POST_BUILD
-        COMMAND cmake -E copy ${cacert_SOURCE_DIR}/cacert.pem ${CMAKE_BINARY_DIR})
 endif()
 
 ## actually linking against those libs
