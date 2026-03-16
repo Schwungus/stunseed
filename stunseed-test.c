@@ -19,6 +19,9 @@ int main(int argc, char* argv[]) {
 	SetTargetFPS(20);
 
 	while (!WindowShouldClose()) {
+		if (IsKeyPressed(KEY_Q))
+			break;
+
 		if (IsKeyPressed(KEY_K))
 			stunseed_echo();
 
