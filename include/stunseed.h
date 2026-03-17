@@ -15,14 +15,14 @@ extern "C" {
 // --------- //
 
 /// Maximum amount of simultaneous peer connections supported.
-#define STUNSEED_MAX_PEERS (32)
+#define STUNSEED_MAX_PEERS (31)
 
 /// The default STUN server to use.
 #define STUNSEED_DEFAULT_STUN "stun.l.google.com:19302"
 
 /// The default torrent tracker to leech into for WebRTC signalling.
-// #define STUNSEED_DEFAULT_TRACKER "wss://tracker.openwebtorrent.com"
-#define STUNSEED_DEFAULT_TRACKER "wss://echo.websocket.org"
+#define STUNSEED_DEFAULT_TRACKER "wss://tracker.openwebtorrent.com"
+// #define STUNSEED_DEFAULT_TRACKER "wss://echo.websocket.org"
 
 // ----------- //
 // AUXILIARIES //
@@ -47,20 +47,23 @@ void stunseed_echo();
 // PEERS //
 // ----- //
 
+/// A WebTorrent ID string.
+typedef char stunseed_webtorrent_id[20];
+
+/// Generates a WebTorrent ID string into an output buffer.
+void stunseed_generate_webtorrent_id(stunseed_webtorrent_id);
+
 /// An internal struct for peer-related data.
 typedef struct {
-	void* glue;
 	char* sdp;
+	stunseed_webtorrent_id offer_id;
 } stunseed_peer_info;
-
-/// A unique identifier for a peer within a session, including ourselves.
-typedef char stunseed_peer_id[4];
 
 /// Returns our peer's unique identifier.
 const char* stunseed_get_our_id();
 
 /// Returns a piece of peer's metadata by the field's name.
-stunseed_field stunseed_peer_get(stunseed_peer_id peer, const char* name);
+stunseed_field stunseed_peer_get(stunseed_webtorrent_id peer, const char* name);
 
 /// Copies a named value into our own metadata dictionary.
 void stunseed_peer_set(const char* name, int size, const void* data);
@@ -69,14 +72,11 @@ void stunseed_peer_set(const char* name, int size, const void* data);
 // CONNECTION //
 // ---------- //
 
-/// A secret shared between the peers used to join a stunseed lobby.
-typedef char stunseed_lobby_secret[16];
+/// Initiate a P2P session for `count` players with a random ID.
+void stunseed_host(int count);
 
-/// Initiate a P2P session for `count` players with a specified secret.
-void stunseed_host(const char* secret, int count);
-
-/// Join a P2P session by its secret.
-void stunseed_join(const char* secret);
+/// Join a P2P session by its ID.
+void stunseed_join(stunseed_webtorrent_id id);
 
 // ------- //
 // LOGGING //

@@ -3,8 +3,6 @@
 #include "raylib.h"
 #include "stunseed.h"
 
-#define LOBBY_ID "ABCDEFGH"
-
 static void tracer(stunseed_log_level level, const char* buf) {
 	int rl_level = LOG_INFO;
 	if (level != STUNSEED_LOG_INFO)
@@ -28,10 +26,10 @@ int main(int argc, char* argv[]) {
 			stunseed_echo();
 
 		if (IsKeyPressed(KEY_H))
-			stunseed_host(LOBBY_ID, 2);
+			stunseed_host(2);
 
 		if (IsKeyPressed(KEY_J))
-			stunseed_join(LOBBY_ID);
+			stunseed_join("damn");
 
 		BeginDrawing();
 		ClearBackground(RAYWHITE);
