@@ -26,7 +26,7 @@ static enum stunseed_mode_t {
 
 static rtc::Configuration stunseed_rtc_config;
 static stunseed_peer_info stunseed_peers[STUNSEED_MAX_PEERS] = {0};
-static rtc::WebSocket stunseed_tracker_sock;
+static std::unique_ptr<rtc::WebSocket> stunseed_tracker_sock = nullptr;
 
 static void stunseed_rtc_log(rtc::LogLevel level, const std::string& line) {
 	stunseed_log_level log_level = stunseed_log_level::STUNSEED_LOG_INFO;
@@ -68,7 +68,8 @@ static void stunseed_glue_create_pc(stunseed_glue* glue) {
 }
 
 extern "C" void stunseed_kill_tracker_sock() {
-	stunseed_tracker_sock.close();
+	if (stunseed_tracker_sock)
+		stunseed_tracker_sock->close();
 }
 
 static void stunseed_nuke_peer(void* raw) {
@@ -92,10 +93,11 @@ static void stunseed_prepare(const char* secret, int mode) {
 	stunseed_init();
 	stunseed_mode = (stunseed_mode_t)mode;
 
-	stunseed_tracker_sock.forceClose();
-	stunseed_tracker_sock.open(STUNSEED_DEFAULT_TRACKER);
+	stunseed_kill_tracker_sock();
+	stunseed_tracker_sock = std::make_unique<rtc::WebSocket>();
+	stunseed_tracker_sock->open(STUNSEED_DEFAULT_TRACKER);
 
-	stunseed_tracker_sock.onMessage([](const auto& msg) {
+	stunseed_tracker_sock->onMessage([](const auto& msg) {
 		if (std::holds_alternative<std::string>(msg)) {
 			const auto& s = std::get<std::string>(msg);
 			stunseed_warn("recv: %s", s.c_str());
@@ -161,8 +163,8 @@ socket.send(JSON.stringify(announceMsg));
 	size_t len = 0;
 	char* payload = yyjson_mut_write(doc, 0, &len);
 	stunseed_info("SHIT %.*s", len, payload);
-	if (stunseed_tracker_sock.isOpen())
-		stunseed_tracker_sock.send(std::string(payload, len));
+	if (stunseed_tracker_sock && stunseed_tracker_sock->isOpen())
+		stunseed_tracker_sock->send(std::string(payload, len));
 	free(payload), payload = NULL;
 	yyjson_mut_doc_free(doc), doc = NULL;
 }
@@ -247,6 +249,6 @@ extern "C" void stunseed_join(const char* secret) {
 }
 
 extern "C" void stunseed_echo() {
-	if (stunseed_tracker_sock.isOpen())
-		stunseed_tracker_sock.send("damn bro");
+	if (stunseed_tracker_sock && stunseed_tracker_sock->isOpen())
+		stunseed_tracker_sock->send("damn bro");
 }
