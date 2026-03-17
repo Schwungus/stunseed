@@ -30,12 +30,14 @@ IncludeBlocks: Regroup
 IncludeIsMainRegex: "a{999}" # no main includes
 SortIncludes: CaseSensitive
 IncludeCategories:
-  - Regex: "^<(std|str|time)"
-    Priority: 0
   - Regex: "^<rtc"
     Priority: 10
-  - Regex: "^<bq"
+  - Regex: "^<yy"
     Priority: 20
+  - Regex: "^<(std|str|time).*\\.h>"
+    Priority: 5
+  - Regex: "[^.].{0,3}>$"
+    Priority: 0
   - Regex: "^<"
     Priority: 50
   - Regex: '^"'

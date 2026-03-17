@@ -2,20 +2,18 @@
 // platform (the native libdatachannel is mostly C++ as well, with only an extern "C" compatibility
 // layer), i've decided to stuff all of this interoperable C++ glue into its own file.
 
-#include <stddef.h>
-#include <string.h>
+#include <memory>
 #include <string>
+#include <variant>
 
 #include <rtc/candidate.hpp>
 #include <rtc/datachannel.hpp>
 #include <rtc/peerconnection.hpp>
 #include <rtc/rtc.hpp>
+#include <rtc/websocket.hpp>
 
-#include <memory>
-#include <variant>
 #include <yyjson.h>
 
-#include "rtc/websocket.hpp"
 #include "stunseed.h"
 
 static enum stunseed_mode_t {
