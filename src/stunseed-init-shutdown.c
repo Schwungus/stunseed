@@ -1,6 +1,5 @@
 #include <stdbool.h>
 #include <stdlib.h>
-#include <time.h>
 
 #include "stunseed.h"
 
@@ -11,10 +10,7 @@ void stunseed_init() {
 		return;
 	stunseed_init_done = true;
 
-	// future me, please take note of this...
-	struct timespec ts = {0};
-	timespec_get(&ts, TIME_UTC);
-	srand(ts.tv_sec * 1000000000 + ts.tv_nsec);
+	srand(stunseed_time_ns());
 
 	extern void stunseed_glue_set_rtc_logger();
 	stunseed_glue_set_rtc_logger();

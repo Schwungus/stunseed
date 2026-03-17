@@ -78,6 +78,9 @@ void stunseed_host(int count);
 /// Join a P2P session by its ID.
 void stunseed_join(stunseed_webtorrent_id id);
 
+/// Call this every tick to re-announce yourself to the other peers every now and then.
+void stunseed_update();
+
 // ------- //
 // LOGGING //
 // ------- //
@@ -113,6 +116,9 @@ void stunseed_log(stunseed_log_level, const char*, ...);
 
 /// Compute a file's basename (file name without directory).
 const char* stunseed_basename(const char* path);
+
+/// Return the current timestamp in nanoseconds.
+uint64_t stunseed_time_ns();
 
 #ifdef __cplusplus
 }

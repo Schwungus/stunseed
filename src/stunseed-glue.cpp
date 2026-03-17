@@ -63,7 +63,7 @@ extern "C" const char* stunseed_get_our_id() {
 }
 
 static void stunseed_maybe_announce() {
-	if (stunseed_sdp_ready_count() != stunseed_peer_count())
+	if (!stunseed_peer_count() || stunseed_sdp_ready_count() != stunseed_peer_count())
 		return;
 
 	/*
@@ -105,11 +105,22 @@ socket.send(JSON.stringify(announceMsg));
 
 	size_t len = 0;
 	char* payload = yyjson_mut_write(doc, 0, &len);
-	stunseed_info("SHIT %.*s", len, payload);
 	if (stunseed_tracker_sock && stunseed_tracker_sock->isOpen())
 		stunseed_tracker_sock->send(std::string(payload, len));
+	else
+		stunseed_warn("gosh darn it");
 	free(payload), payload = NULL;
 	yyjson_mut_doc_free(doc), doc = NULL;
+}
+
+extern "C" void stunseed_update() {
+	static uint64_t last_update = 0;
+	const uint64_t now = stunseed_time_ns();
+
+	if (!last_update || now - last_update > 100000000) { // 100ms
+		stunseed_maybe_announce();
+		last_update = now;
+	}
 }
 
 extern "C" void stunseed_kill_tracker_sock() {
@@ -125,10 +136,16 @@ static void stunseed_prepare(int mode) {
 	stunseed_tracker_sock = std::make_unique<rtc::WebSocket>();
 	stunseed_tracker_sock->open(STUNSEED_DEFAULT_TRACKER);
 
+	stunseed_tracker_sock->onClosed([]() {
+		// TODO: handle.
+	});
+
 	stunseed_tracker_sock->onMessage([](const auto& msg) {
 		if (std::holds_alternative<std::string>(msg)) {
 			const auto& s = std::get<std::string>(msg);
 			stunseed_warn("recv: %s", s.c_str());
+		} else {
+			stunseed_warn("SHIT RECV");
 		}
 	});
 
@@ -171,7 +188,7 @@ static void stunseed_create_offers() {
 
 		peer.pc->onStateChange([](rtc::PeerConnection::State state) {
 			if (state >= rtc::PeerConnection::State::Disconnected)
-				stunseed_warn("DAMN IT"); // TODO: handle disconnection
+				(void)0; // TODO: handle disconnection
 		});
 
 		peer.dc = peer.pc->createDataChannel("bruh");
@@ -195,9 +212,12 @@ static void stunseed_create_offers() {
 	}
 }
 
+#define LOBBY_ID "12345678901234567890"
+
 extern "C" void stunseed_host(int count) {
 	stunseed_prepare(STUNSEED_MODE_HOST);
-	stunseed_generate_webtorrent_id(stunseed_lobby_id);
+	// stunseed_generate_webtorrent_id(stunseed_lobby_id);
+	memcpy(stunseed_lobby_id, LOBBY_ID, sizeof(stunseed_lobby_id));
 
 	if (count > STUNSEED_MAX_PEERS) {
 		count = STUNSEED_MAX_PEERS;
@@ -209,13 +229,16 @@ extern "C" void stunseed_host(int count) {
 		stunseed_warn("requested <1 peers", count);
 	}
 
-	stunseed_info("%d peers max", count);
+	stunseed_info("hosting. %d peers max", count);
 	stunseed_create_offers();
 }
 
 extern "C" void stunseed_join(stunseed_webtorrent_id id) {
+	(void)id;
 	stunseed_prepare(STUNSEED_MODE_JOIN);
-	memcpy(stunseed_lobby_id, id, sizeof(stunseed_lobby_id));
+	memcpy(stunseed_lobby_id, LOBBY_ID, sizeof(stunseed_lobby_id));
+
+	stunseed_info("joining...");
 	stunseed_create_offers();
 }
 
