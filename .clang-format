@@ -2,7 +2,7 @@ ColumnLimit: 120
 IndentWidth: 8
 ContinuationIndentWidth: 8
 UseTab: Always
-AlignArrayOfStructures: Left
+AlignArrayOfStructures: None
 AlignAfterOpenBracket: false
 BreakBeforeBinaryOperators: All
 BreakBeforeBraces: Custom
@@ -30,9 +30,9 @@ IncludeBlocks: Regroup
 IncludeIsMainRegex: "a{999}" # no main includes
 SortIncludes: CaseSensitive
 IncludeCategories:
-  - Regex: "^<rtc"
+  - Regex: "^<rtc/"
     Priority: 10
-  - Regex: "^<yy"
+  - Regex: "\\.hpp>$"
     Priority: 20
   - Regex: "^<(std|str|time).*\\.h>"
     Priority: 5

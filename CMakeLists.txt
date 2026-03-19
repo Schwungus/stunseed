@@ -5,6 +5,8 @@ project(stunseed VERSION 0.1.0
 
 option(STUNSEED_BUILD_TEST "Build a stunseed test binary?" OFF)
 
+set(CMAKE_CXX_STANDARD 20)
+
 # static-library definition
 
 set(BUILD_SHARED_LIBS OFF)
@@ -34,12 +36,11 @@ set_target_properties(stunseed PROPERTIES LINKER_LANGUAGE CXX)
 
 # external deps
 
-## yyjson for forging packets to achieve the aforementioned FREE signalling
+## json serializer/deserializer for forging packets to achieve the aforementioned FREE signalling
 
-FetchContent_Declare(yyjson
-    GIT_REPOSITORY https://github.com/ibireme/yyjson.git
-    GIT_TAG 0.12.0)
-list(APPEND LIBS yyjson)
+FetchContent_Declare(json
+    URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz)
+list(APPEND LIBS nlohmann_json::nlohmann_json)
 
 ## libdatachannel for webrtc
 
@@ -53,7 +54,7 @@ if(CMAKE_SYSTEM_NAME MATCHES "Emscripten")
         GIT_TAG v0.4.0)
     list(APPEND LIBS datachannel-wasm)
 
-    target_link_options(stunseed PUBLIC -s ASYNCIFY)
+    target_link_options(stunseed PUBLIC -sASYNCIFY -sEXPORTED_RUNTIME_METHODS=HEAPU32)
     target_compile_options(stunseed PUBLIC -O3) # the emscripten manual recommends this
 else()
     FetchContent_Declare(datachannel
@@ -64,7 +65,7 @@ endif()
 
 ## actually linking against those libs
 
-FetchContent_MakeAvailable(datachannel yyjson)
+FetchContent_MakeAvailable(datachannel json)
 target_link_libraries(stunseed PUBLIC ${LIBS})
 
 # test-binary definition

@@ -24,9 +24,6 @@ int main(int argc, char* argv[]) {
 		if (IsKeyPressed(KEY_Q))
 			break;
 
-		if (IsKeyPressed(KEY_K))
-			stunseed_echo();
-
 		if (IsKeyPressed(KEY_H))
 			stunseed_host(2);
 
@@ -39,6 +36,7 @@ int main(int argc, char* argv[]) {
 		EndDrawing();
 	}
 
+	stunseed_shutdown();
 	CloseWindow();
 
 	return EXIT_SUCCESS;

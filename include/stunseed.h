@@ -40,9 +40,6 @@ void stunseed_init();
 /// Call this once before exiting the program to clean up after stunseed.
 void stunseed_shutdown();
 
-/// uhh...
-void stunseed_echo();
-
 // ----- //
 // PEERS //
 // ----- //
@@ -76,7 +73,7 @@ void stunseed_peer_set(const char* name, int size, const void* data);
 void stunseed_host(int count);
 
 /// Join a P2P session by its ID.
-void stunseed_join(stunseed_webtorrent_id id);
+void stunseed_join(const char* id);
 
 /// Call this every tick to re-announce yourself to the other peers every now and then.
 void stunseed_update();
