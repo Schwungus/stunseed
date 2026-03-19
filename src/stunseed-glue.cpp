@@ -63,6 +63,11 @@ extern "C" const char* stunseed_get_our_id() {
 	return stunseed_peer_id;
 }
 
+static void stunseed_send_json(const nlohmann::json& obj) {
+	if (stunseed_tracker_sock && stunseed_tracker_sock->isOpen())
+		stunseed_tracker_sock->send(obj.dump());
+}
+
 static void stunseed_maybe_announce() {
 	if (!stunseed_peer_count() || stunseed_sdp_ready_count() != stunseed_peer_count())
 		return;
@@ -82,9 +87,11 @@ const announceMsg = {
 socket.send(JSON.stringify(announceMsg));
 	*/
 
-	nlohmann::json obj = {
+	std::string info_hash(stunseed_lobby_id, sizeof(stunseed_lobby_id));
+
+	nlohmann::json params = {
 		{"action", "announce"},
-		{"info_hash", stunseed_lobby_id},
+		{"info_hash", std::move(info_hash)},
 		{"peer_id", stunseed_peer_id},
 		{"downloaded", 0},
 		{"left", 100},
@@ -93,17 +100,16 @@ socket.send(JSON.stringify(announceMsg));
 	};
 
 	std::vector<nlohmann::json> offers(stunseed_peer_count());
-	for (int i = 0; i < offers.size(); i++)
+	for (int i = 0; i < offers.size(); i++) {
+		std::string offer_id(stunseed_peers[i].c.offer_id, sizeof(stunseed_webtorrent_id));
 		offers[i] = {
 			{"offer", stunseed_peers[i].c.sdp},
-			{"offer_id", ""},
+			{"offer_id", std::move(offer_id)},
 		};
-	obj["offers"] = offers;
+	}
+	params["offers"] = offers;
 
-	if (stunseed_tracker_sock && stunseed_tracker_sock->isOpen())
-		stunseed_tracker_sock->send(obj.dump());
-	else
-		stunseed_warn("gosh darn it");
+	stunseed_send_json(params);
 }
 
 extern "C" void stunseed_update() {
@@ -131,8 +137,26 @@ static void stunseed_on_ws_message(const rtc::message_variant& msg) {
 	stunseed_warn("recv: %s", s.c_str());
 
 	const auto obj = nlohmann::json::parse(s, nullptr, false);
-	if (obj.is_object() && obj.contains("interval"))
+	if (!obj.is_object())
+		return;
+
+	if (obj.contains("interval"))
 		stunseed_announce_interval = (int)obj["interval"] * stunseed_ns;
+
+	if (obj.contains("offer") && obj.contains("peer_id")) {
+		std::string info_hash(stunseed_lobby_id, sizeof(stunseed_lobby_id));
+		std::string peer_id(stunseed_peer_id, sizeof(stunseed_peer_id));
+
+		nlohmann::json params = {
+			{"action", "announce"},
+			{"info_hash", std::move(info_hash)},
+			{"peer_id", std::move(peer_id)},
+			{"to_peer_id", obj["peer_id"]},
+			{"offer_id", obj["offer_id"]},
+		};
+
+		stunseed_send_json(params);
+	}
 }
 
 static void stunseed_prepare(int mode) {
