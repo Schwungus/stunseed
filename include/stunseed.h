@@ -15,7 +15,7 @@ extern "C" {
 // --------- //
 
 /// Maximum amount of simultaneous peer connections supported.
-#define STUNSEED_MAX_PEERS (31)
+#define STUNSEED_MAX_PEERS (7)
 
 /// The default STUN server to use.
 #define STUNSEED_DEFAULT_STUN "stun.l.google.com:19302"
@@ -30,8 +30,8 @@ extern "C" {
 
 /// A metadata field with a size and a pointer to its data.
 typedef struct {
-	int size;
-	const void* data;
+    int size;
+    const void* data;
 } stunseed_field;
 
 /// Initialize the stunseed library. You don't need to call this manually (usually).
@@ -49,12 +49,6 @@ typedef char stunseed_webtorrent_id[20];
 
 /// Generates a WebTorrent ID string into an output buffer.
 void stunseed_generate_webtorrent_id(stunseed_webtorrent_id);
-
-/// An internal struct for peer-related data.
-typedef struct {
-	char* sdp;
-	stunseed_webtorrent_id offer_id;
-} stunseed_peer_info;
 
 /// Returns our peer's unique identifier.
 const char* stunseed_get_our_id();
@@ -83,8 +77,8 @@ void stunseed_update();
 // ------- //
 
 typedef enum {
-	STUNSEED_LOG_INFO,
-	STUNSEED_LOG_WARN,
+    STUNSEED_LOG_INFO,
+    STUNSEED_LOG_WARN,
 } stunseed_log_level;
 
 /// A logging function type.
