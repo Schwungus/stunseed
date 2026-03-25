@@ -7,6 +7,7 @@ static stunseed_logger stunseed_logger_fn = stunseed_default_log;
 
 void stunseed_set_logger(stunseed_logger new_logger) {
     stunseed_logger_fn = new_logger ? new_logger : stunseed_default_log;
+    stunseed_init(); // init as early as possible for convenience
 }
 
 void stunseed_log(stunseed_log_level level, const char* line, ...) {

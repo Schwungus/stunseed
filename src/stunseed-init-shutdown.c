@@ -10,6 +10,9 @@ void stunseed_init() {
         return;
     stunseed_init_done = true;
 
+    extern void stunseed_glue_init();
+    stunseed_glue_init();
+
     srand(stunseed_time_ns());
 
     extern void stunseed_glue_set_rtc_logger();
@@ -24,6 +27,9 @@ void stunseed_init() {
 void stunseed_shutdown() {
     extern void stunseed_kill_tracker_sock();
     stunseed_kill_tracker_sock();
+
+    extern void stunseed_glue_cleanup();
+    stunseed_glue_cleanup();
 
     stunseed_info("stunseed out!");
 }
