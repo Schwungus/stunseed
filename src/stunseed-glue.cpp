@@ -6,6 +6,7 @@
 #include <optional>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <variant>
 
 #include <rtc/rtc.hpp>
@@ -52,7 +53,7 @@ struct stunseed_connection {
             stunseed_warn("DEAD");
         });
 
-        dc->onMessage([this](const auto& msg) {
+        dc->onMessage([this](auto msg) {
             if (!std::holds_alternative<std::string>(msg))
                 return;
             const auto s = std::get<std::string>(msg);
@@ -138,8 +139,13 @@ extern "C" void stunseed_kill_tracker_sock() {
     stunseed_tracker_sock.reset();
 }
 
+static void stunseed_on_ws_open() {
+    stunseed_info("sock open");
+}
+
 static void stunseed_on_ws_closed() {
     // TODO: handle.
+    stunseed_info("sock closed");
 }
 
 static void stunseed_on_ws_message(const rtc::message_variant& msg) {
@@ -171,9 +177,10 @@ static void stunseed_on_ws_message(const rtc::message_variant& msg) {
 
     auto& peer = stunseed_connections.at(offer_id);
     if (new_conn)
-        peer.pc->onDataChannel([&peer](const auto& dc) {
-            peer.dc = dc;
+        peer.pc->onDataChannel([&peer](auto dc) {
+            peer.dc = std::move(dc);
             peer.setup_dc();
+            peer.dc->send("damn bro!");
             stunseed_warn("GOT DC!!!!!!!");
         });
 
@@ -193,10 +200,14 @@ static void stunseed_on_ws_message(const rtc::message_variant& msg) {
         peer.pc->addRemoteCandidate(rtc::Candidate(c["candidate"], c["sdpMid"]));
     }
 
+    std::optional<std::string> type;
     if (obj.contains("offer"))
-        peer.pc->setRemoteDescription(rtc::Description(obj["offer"], "offer"));
+        type = "offer";
     else if (obj.contains("answer"))
-        peer.pc->setRemoteDescription(rtc::Description(obj["answer"], "answer"));
+        type = "answer";
+
+    if (type)
+        peer.pc->setRemoteDescription(rtc::Description(obj[*type]["sdp"], *type));
 }
 
 static void stunseed_prepare() {
@@ -210,12 +221,7 @@ static void stunseed_prepare() {
     stunseed_kill_tracker_sock();
     stunseed_tracker_sock.emplace();
 
-    stunseed_tracker_sock->onOpen([]() {
-        stunseed_info("sock open");
-        stunseed_announce_all_ready();
-    });
-
-    stunseed_tracker_sock->onClosed([]() { stunseed_info("sock closed"); });
+    stunseed_tracker_sock->onOpen(stunseed_on_ws_open);
     stunseed_tracker_sock->onClosed(stunseed_on_ws_closed);
     stunseed_tracker_sock->onMessage(stunseed_on_ws_message);
 
@@ -232,7 +238,7 @@ extern "C" void stunseed_glue_set_rtc_logger() {
 }
 
 static void stunseed_create_offers() {
-    for (int i = 0; i < STUNSEED_MAX_PEERS; i++) {
+    for (int i = 0; i < 1; i++) { // TODO: use STUNSEED_MAX_PEERS
         std::string offer_id(sizeof(stunseed_webtorrent_id), '\0');
         stunseed_generate_webtorrent_id(offer_id.data());
         stunseed_connections.emplace(offer_id, offer_id);
