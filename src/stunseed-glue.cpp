@@ -1,6 +1,6 @@
-// datachannel-wasm only provides a C++ API. since we're using a C++ linker regardless of the target
-// platform (the native libdatachannel is mostly C++ as well, with only an extern "C" compatibility
-// layer), i've decided to stuff all of this interoperable C++ glue into its own file.
+// datachannel-wasm only provides a C++ API. due to this limitation, we're using a C++ compiler/linker regardless of the
+// target platform. the native libdatachannel is backed by C++ as well. so i've decided to stuff all of this
+// interoperable C++ glue into its own file.
 
 #include <memory>
 #include <optional>
