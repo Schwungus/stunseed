@@ -82,6 +82,9 @@ void stunseed_host(int count);
 /// Joins a P2P session by its ID.
 void stunseed_join(const char* id);
 
+/// Disconnects you from the lobby.
+void stunseed_disconnect();
+
 /// Call this every tick to re-announce yourself to the other peers every now and then.
 void stunseed_update();
 

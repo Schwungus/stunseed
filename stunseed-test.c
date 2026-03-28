@@ -26,9 +26,10 @@ int main(int argc, char* argv[]) {
 
         if (IsKeyPressed(KEY_H))
             stunseed_host(2);
-
-        if (IsKeyPressed(KEY_J))
+        else if (IsKeyPressed(KEY_J))
             stunseed_join("damn");
+        else if (IsKeyPressed(KEY_K))
+            stunseed_disconnect();
 
         int y = 5;
         const int fs = 30;
