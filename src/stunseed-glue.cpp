@@ -169,21 +169,16 @@ static void stunseed_on_ws_message(const rtc::message_variant& msg) {
 
     const std::string offer_id = obj["offer_id"];
 
-    bool new_conn = false;
-    if (!stunseed_connections.contains(offer_id)) {
+    if (!stunseed_connections.contains(offer_id))
         stunseed_connections.emplace(offer_id, offer_id);
-        new_conn = true;
-    }
 
     auto& peer = stunseed_connections.at(offer_id);
-    if (new_conn)
-        peer.pc.onDataChannel([&peer](auto dc) {
-            peer.dc = std::move(dc);
-            peer.setup_dc();
-            peer.dc->send("damn bro!");
-            stunseed_warn("GOT DC!!!!!!!");
-        });
     peer.remote_id = obj["peer_id"];
+    peer.pc.onDataChannel([&peer](const auto& dc) {
+        peer.dc = dc;
+        peer.setup_dc();
+        stunseed_warn("GOT DC!!!!!!!");
+    });
 
     std::string type;
     if (obj.contains("offer"))
