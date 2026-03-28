@@ -32,14 +32,14 @@ static void stunseed_announce_all_ready();
 static void stunseed_setup_dc(rtc::DataChannel&);
 
 struct stunseed_connection {
-    std::shared_ptr<rtc::PeerConnection> pc;
+    rtc::PeerConnection pc;
     std::shared_ptr<rtc::DataChannel> dc;
     std::string offer_id;
     std::optional<std::string> sdp, remote_id;
 
-    stunseed_connection(const std::string& offer_id)
-        : offer_id(offer_id), pc(std::make_shared<rtc::PeerConnection>(stunseed_rtc_config)) {
-        pc->onLocalDescription([this](const auto& description) { sdp = description; });
+    stunseed_connection(const std::string& offer_id) : offer_id(offer_id), pc(stunseed_rtc_config) {
+        pc.onLocalDescription([this](const auto& description) { sdp = description; });
+        pc.onLocalCandidate([this](const auto&) { sdp = pc.localDescription(); });
     }
 
     void setup_dc() {
@@ -68,7 +68,7 @@ static std::unordered_map<std::string, stunseed_connection> stunseed_connections
 static std::optional<rtc::WebSocket> stunseed_tracker_sock;
 static std::vector<nlohmann::json> stunseed_ws_queue;
 
-static constexpr const uint64_t stunseed_ns = 1000000000, stunseed_default_announce_interval = stunseed_ns / 10;
+static constexpr const uint64_t stunseed_ns = 1000000000, stunseed_default_announce_interval = 0.5 * stunseed_ns;
 static uint64_t stunseed_announce_interval = stunseed_default_announce_interval;
 
 static void stunseed_rtc_log(rtc::LogLevel level, const std::string& line) {
@@ -88,6 +88,7 @@ static void stunseed_send_json(nlohmann::json obj) {
     obj.update({
         {"info_hash", std::string(stunseed_lobby_id, sizeof(stunseed_lobby_id))},
         {"peer_id", std::string(stunseed_peer_id, sizeof(stunseed_peer_id))},
+        {"action", "announce"},
     });
     stunseed_ws_queue.push_back(std::move(obj));
 }
@@ -96,7 +97,7 @@ static void stunseed_announce_all_ready() {
     std::vector<nlohmann::json> offers;
 
     for (const auto& pair : stunseed_connections) {
-        const auto [id, peer] = pair;
+        const auto& [id, peer] = pair;
         if (!peer.sdp)
             return;
         offers.push_back({
@@ -106,11 +107,10 @@ static void stunseed_announce_all_ready() {
     }
 
     stunseed_send_json({
-        {"action", "announce"},
         {"downloaded", 0},
         {"left", 1000},
         {"uploaded", 0},
-        {"numwant", STUNSEED_MAX_PEERS},
+        {"numwant", 1}, // TODO: use STUNSEED_MAX_PEERS
         {"offers", offers},
     });
 }
@@ -171,43 +171,29 @@ static void stunseed_on_ws_message(const rtc::message_variant& msg) {
 
     bool new_conn = false;
     if (!stunseed_connections.contains(offer_id)) {
-        stunseed_connections.emplace(offer_id, stunseed_connection(offer_id));
+        stunseed_connections.emplace(offer_id, offer_id);
         new_conn = true;
     }
 
     auto& peer = stunseed_connections.at(offer_id);
     if (new_conn)
-        peer.pc->onDataChannel([&peer](auto dc) {
+        peer.pc.onDataChannel([&peer](auto dc) {
             peer.dc = std::move(dc);
             peer.setup_dc();
             peer.dc->send("damn bro!");
             stunseed_warn("GOT DC!!!!!!!");
         });
-
     peer.remote_id = obj["peer_id"];
 
-    peer.pc->onLocalCandidate([&peer](const auto& candidate) {
-        stunseed_send_json({
-            {"action", "announce"},
-            {"candidate", {{"candidate", (std::string)candidate}, {"sdpMid", "0"}}},
-            {"offer_id", peer.offer_id},
-            {"to_peer_id", peer.remote_id},
-        });
-    });
-
-    if (obj.contains("candidate")) {
-        const auto& c = obj["candidate"];
-        peer.pc->addRemoteCandidate(rtc::Candidate(c["candidate"], c["sdpMid"]));
-    }
-
-    std::optional<std::string> type;
+    std::string type;
     if (obj.contains("offer"))
         type = "offer";
     else if (obj.contains("answer"))
         type = "answer";
+    else
+        return;
 
-    if (type)
-        peer.pc->setRemoteDescription(rtc::Description(obj[*type]["sdp"], *type));
+    peer.pc.setRemoteDescription(rtc::Description(obj[type]["sdp"], type));
 }
 
 static void stunseed_prepare() {
@@ -246,7 +232,7 @@ static void stunseed_create_offers() {
 
     for (auto& pair : stunseed_connections) {
         auto& peer = pair.second;
-        peer.dc = peer.pc->createDataChannel("bruh");
+        peer.dc = peer.pc.createDataChannel("bruh");
         peer.setup_dc();
     }
 }
