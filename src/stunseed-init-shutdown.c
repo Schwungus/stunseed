@@ -18,9 +18,6 @@ void stunseed_init() {
     extern void stunseed_glue_set_rtc_logger();
     stunseed_glue_set_rtc_logger();
 
-    extern void stunseed_glue_set_stun_server();
-    stunseed_glue_set_stun_server();
-
     stunseed_info("welcome to stunseed!");
 }
 

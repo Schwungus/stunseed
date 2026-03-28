@@ -24,7 +24,10 @@ extern "C" void stunseed_glue_cleanup() {
     rtc::Cleanup();
 }
 
-static rtc::Configuration stunseed_rtc_config;
+static const rtc::Configuration stunseed_rtc_config{
+    .iceServers = {std::string("stun:") + STUNSEED_DEFAULT_STUN},
+};
+
 static stunseed_webtorrent_id stunseed_lobby_id = {0}, stunseed_peer_id = {0};
 
 static void stunseed_send_json(nlohmann::json);
@@ -207,11 +210,6 @@ static void stunseed_prepare() {
     stunseed_tracker_sock->onMessage(stunseed_on_ws_message);
 
     stunseed_tracker_sock->open(STUNSEED_DEFAULT_TRACKER);
-}
-
-extern "C" void stunseed_glue_set_stun_server() {
-    const std::string scheme = "stun:";
-    stunseed_rtc_config.iceServers.emplace_back(scheme + STUNSEED_DEFAULT_STUN);
 }
 
 extern "C" void stunseed_glue_set_rtc_logger() {
