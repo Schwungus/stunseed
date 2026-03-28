@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -64,10 +65,13 @@ void stunseed_peer_set(const char* name, int size, const void* data);
 // CONNECTION //
 // ---------- //
 
-/// Initiate a P2P session for `count` players with a random ID.
+/// Returns true if we are currently connected to a WebTorrent tracker to announce ourselves to the swarm.
+bool stunseed_is_connected();
+
+/// Initiates a P2P session for `count` players with a random ID.
 void stunseed_host(int count);
 
-/// Join a P2P session by its ID.
+/// Joins a P2P session by its ID.
 void stunseed_join(const char* id);
 
 /// Call this every tick to re-announce yourself to the other peers every now and then.

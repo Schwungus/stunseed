@@ -3,9 +3,8 @@
 
 #include "stunseed.h"
 
-static bool stunseed_init_done = false;
-
 void stunseed_init() {
+    static bool stunseed_init_done = false;
     if (stunseed_init_done)
         return;
     stunseed_init_done = true;
@@ -18,7 +17,7 @@ void stunseed_init() {
     extern void stunseed_glue_set_rtc_logger();
     stunseed_glue_set_rtc_logger();
 
-    stunseed_info("welcome to stunseed!");
+    stunseed_info("welcome to stunseed! v%s", STUNSEED_VERSION);
 }
 
 void stunseed_shutdown() {
