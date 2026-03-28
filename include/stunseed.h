@@ -49,11 +49,19 @@ void stunseed_shutdown();
 /// A WebTorrent ID string.
 typedef char stunseed_webtorrent_id[20];
 
+typedef struct stunseed_peer_info {
+    stunseed_webtorrent_id id;
+    struct stunseed_peer_info* next;
+} stunseed_peer_info;
+
 /// Generates a WebTorrent ID string into an output buffer.
 void stunseed_generate_webtorrent_id(stunseed_webtorrent_id);
 
 /// Returns our peer's unique identifier.
 const char* stunseed_get_our_id();
+
+/// Returns a linked list of all peers we're connected to.
+stunseed_peer_info* stunseed_get_peers();
 
 /// Returns a piece of peer's metadata by the field's name.
 stunseed_field stunseed_peer_get(stunseed_webtorrent_id peer, const char* name);
