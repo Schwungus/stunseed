@@ -100,7 +100,7 @@ extern "C" stunseed_peer_info* stunseed_get_peers() {
 
     for (const auto& pair : stunseed_connections) {
         const auto& peer = pair.second;
-        if (!peer.remote_id)
+        if (!peer.remote_id || !peer.dc)
             continue;
 
         if (cur > mem)
