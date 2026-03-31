@@ -21,9 +21,6 @@ void stunseed_init() {
 }
 
 void stunseed_shutdown() {
-    extern void stunseed_kill_tracker_sock();
-    stunseed_kill_tracker_sock();
-
     extern void stunseed_glue_cleanup();
     stunseed_glue_cleanup();
 

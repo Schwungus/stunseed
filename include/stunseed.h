@@ -42,6 +42,9 @@ void stunseed_init();
 /// Call this once before exiting the program to clean up after stunseed.
 void stunseed_shutdown();
 
+/// Call this to set the amount of channels stunseed can receive on. Defaults to just 1.
+void stunseed_set_channel_count(int);
+
 // ----- //
 // PEERS //
 // ----- //
@@ -50,7 +53,7 @@ void stunseed_shutdown();
 typedef char stunseed_webtorrent_id[20];
 
 typedef struct stunseed_peer_info {
-    stunseed_webtorrent_id id;
+    char id[sizeof(stunseed_webtorrent_id) + 1];
     struct stunseed_peer_info* next;
 } stunseed_peer_info;
 
@@ -63,11 +66,14 @@ const char* stunseed_get_our_id();
 /// Returns a linked list of all peers we're connected to.
 stunseed_peer_info* stunseed_get_peers();
 
-/// Returns a piece of peer's metadata by the field's name.
-stunseed_field stunseed_peer_get(stunseed_webtorrent_id peer, const char* name);
+/// Returns true if there is a message awaiting on the specified channel.
+bool stunseed_poll(int chan);
 
-/// Copies a named value into our own metadata dictionary.
-void stunseed_peer_set(const char* name, int size, const void* data);
+// TODO: document.
+bool stunseed_recv(int chan, char* sender, void* data, int* size);
+
+// TODO: document.
+void stunseed_send(int chan, const char* destination, const void* data, int size);
 
 // ---------- //
 // CONNECTION //
