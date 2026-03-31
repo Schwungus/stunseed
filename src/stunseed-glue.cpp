@@ -71,9 +71,7 @@ struct stunseed_connection {
 static std::optional<rtc::WebSocket> stunseed_tracker_sock;
 static std::vector<nlohmann::json> stunseed_ws_queue;
 
-static constexpr const uint64_t stunseed_ns = 1000000000, stunseed_default_announce_interval = stunseed_ns,
-                                stunseed_debounced_announce_interval = 5 * stunseed_ns;
-static uint64_t stunseed_announce_interval = stunseed_default_announce_interval;
+static constexpr const uint64_t stunseed_announce_interval = 3000000000;
 
 static void stunseed_rtc_log(rtc::LogLevel level, const std::string& line) {
     stunseed_log_level log_level = stunseed_log_level::STUNSEED_LOG_INFO;
@@ -200,10 +198,6 @@ static void stunseed_on_ws_message(const rtc::message_variant& msg) {
     if (!obj.is_object())
         return;
 
-    if (obj.contains("interval"))
-        // could use obj["interval"] but 120s is way too slow
-        stunseed_announce_interval = stunseed_debounced_announce_interval;
-
     // stunseed_warn("WS RECV : %s", obj.dump().c_str());
 
     if (!obj.contains("offer_id") || !obj.contains("peer_id"))
@@ -238,7 +232,6 @@ static void stunseed_on_ws_message(const rtc::message_variant& msg) {
 
 static void stunseed_prepare() {
     stunseed_init();
-    stunseed_announce_interval = stunseed_default_announce_interval;
     stunseed_connections.clear();
 
     stunseed_generate_webtorrent_id(stunseed_peer_id);
