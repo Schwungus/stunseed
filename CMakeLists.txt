@@ -21,9 +21,18 @@ endif()
 include(FetchContent)
 set(FETCHCONTENT_QUIET OFF)
 
+set(SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
-file(GLOB_RECURSE SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/*.c*)
-file(GLOB_RECURSE HEADERS ${INCLUDE_DIR}/*.h)
+
+set(SOURCES
+    ${SOURCE_DIR}/stunseed-glue.cpp
+    ${SOURCE_DIR}/stunseed-init-shutdown.c
+    ${SOURCE_DIR}/stunseed-log.c
+    ${SOURCE_DIR}/stunseed-misc.c)
+
+set(HEADERS
+    ${INCLUDE_DIR}/stunseed.h
+    ${INCLUDE_DIR}/stunseed-cmake.h.in)
 
 set(CONFIGURE_FILE ${CMAKE_CURRENT_BINARY_DIR}/stunseed/stunseed-cmake.h)
 configure_file(${INCLUDE_DIR}/stunseed-cmake.h.in ${CONFIGURE_FILE} @ONLY)
@@ -81,6 +90,6 @@ if(STUNSEED_BUILD_TEST)
 
     FetchContent_MakeAvailable(raylib S_tructures)
 
-    add_executable(stunseed-test ${CMAKE_CURRENT_SOURCE_DIR}/stunseed-test.c)
+    add_executable(stunseed-test ${SOURCE_DIR}/stunseed-test.c)
     target_link_libraries(stunseed-test PRIVATE stunseed raylib S_tructures)
 endif()
