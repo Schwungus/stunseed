@@ -49,16 +49,19 @@ void stunseed_set_channel_count(int);
 // PEERS //
 // ----- //
 
-/// A WebTorrent ID string.
-typedef char stunseed_webtorrent_id[20];
+/// How many bytes to use per WebTorrent ID string.
+#define STUNSEED_ID_LENGTH (20)
+
+/// A null-terminated WebTorrent ID string.
+typedef char stunseed_webtorrent_id[STUNSEED_ID_LENGTH + 1];
 
 typedef struct stunseed_peer_info {
-    char id[sizeof(stunseed_webtorrent_id) + 1];
+    stunseed_webtorrent_id id;
     struct stunseed_peer_info* next;
 } stunseed_peer_info;
 
 /// Generates a WebTorrent ID string into an output buffer.
-void stunseed_generate_webtorrent_id(stunseed_webtorrent_id);
+void stunseed_generate_webtorrent_id(char*);
 
 /// Returns our peer's unique identifier.
 const char* stunseed_get_our_id();

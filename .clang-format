@@ -35,9 +35,9 @@ IncludeCategories:
   - Regex: "\\.hpp>$"
     Priority: 20
   - Regex: "^<(std|str|time).*\\.h>"
-    Priority: 5
-  - Regex: "[^.].{0,3}>$"
     Priority: 0
+  - Regex: "[^.].{0,3}>$"
+    Priority: 5
   - Regex: "^<"
     Priority: 50
   - Regex: '^"'

@@ -74,8 +74,13 @@ if(STUNSEED_BUILD_TEST)
     FetchContent_Declare(raylib
         GIT_REPOSITORY https://github.com/raysan5/raylib.git
         GIT_TAG 5.5)
-    FetchContent_MakeAvailable(raylib)
+
+    FetchContent_Declare(S_tructures
+        GIT_REPOSITORY https://github.com/Schwungus/S_tructures.git
+        GIT_TAG 3da21bfad7034a3b5576b635c9be584cee769c13)
+
+    FetchContent_MakeAvailable(raylib S_tructures)
 
     add_executable(stunseed-test ${CMAKE_CURRENT_SOURCE_DIR}/stunseed-test.c)
-    target_link_libraries(stunseed-test PRIVATE stunseed raylib)
+    target_link_libraries(stunseed-test PRIVATE stunseed raylib S_tructures)
 endif()

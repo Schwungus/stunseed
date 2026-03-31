@@ -19,7 +19,7 @@ void stunseed_log(stunseed_log_level level, const char* line, ...) {
 
 void stunseed_log_v(stunseed_log_level level, const char* line, va_list args) {
     static char buf[1024] = {0};
-    vsnprintf(buf, sizeof(buf) - 1, line, args);
+    vsnprintf(buf, sizeof(buf), line, args);
     stunseed_logger_fn(level, buf);
 }
 

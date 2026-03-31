@@ -1,8 +1,9 @@
 #include <stdlib.h>
-#include <string.h>
 
-#include "raylib.h"
-#include "stunseed.h"
+#define S_TRUCTURES_IMPLEMENTATION
+#include <S_tructures.h>
+#include <raylib.h>
+#include <stunseed.h>
 
 static void tracer(stunseed_log_level level, const char* buf) {
     int rl_level = LOG_INFO;
@@ -25,12 +26,7 @@ typedef struct {
     Color color;
 } Player;
 
-typedef struct {
-    stunseed_webtorrent_id id;
-    Player data;
-} Peer;
-
-static Peer peers[STUNSEED_MAX_PEERS] = {0};
+static TinyMap* peers = NULL;
 static Player us = {0};
 
 static void reset() {
@@ -38,7 +34,8 @@ static void reset() {
     us.y = (GetScreenHeight() - SIZE) / 2;
     us.color = RED;
 
-    memset(peers, 0, sizeof(peers));
+    FreeTinyMap(peers);
+    peers = MakeTinyMap();
 }
 
 static void draw_player(Player this) {
@@ -51,26 +48,18 @@ static void receive_shit() {
     int size = sizeof(buf);
 
     while (stunseed_recv(CHAN_GAME, id, buf, &size)) {
-        Peer* peer = NULL;
+        TinyBucket* cell = TinyDictGet(peers, id);
+        if (!cell) {
+            Player player = {0};
+            player.color = GREEN;
+            cell = TinyDictPut(peers, id, &player, sizeof(player));
+        }
 
-        for (int i = 0; i < STUNSEED_MAX_PEERS; i++)
-            if (!memcmp(peers[i].id, id, sizeof(id))) {
-                peer = &peers[i];
-                goto found;
-            }
-
-        for (int i = 0; i < STUNSEED_MAX_PEERS; i++)
-            if (!peers[i].id[0]) {
-                peer = &peers[i];
-                memcpy(peer->id, id, sizeof(id));
-                goto found;
-            }
-
-    found:
-        if (peer) {
-            peer->data.color = GREEN;
-            peer->data.x = buf[0] * NETSCALE;
-            peer->data.y = buf[1] * NETSCALE;
+        Player* player = cell ? cell->data : NULL;
+        if (player) {
+            player->color = GREEN;
+            player->x = buf[0] * NETSCALE;
+            player->y = buf[1] * NETSCALE;
         }
     }
 }
@@ -121,8 +110,8 @@ int main(int argc, char* argv[]) {
         ClearBackground(RAYWHITE);
 
         draw_player(us);
-        for (int i = 0; i < STUNSEED_MAX_PEERS; i++)
-            draw_player(peers[i].data);
+        ST_FOREACH (peers, it)
+            draw_player(*(Player*)it.data);
 
         int y = 5;
         const int fs = 30;
