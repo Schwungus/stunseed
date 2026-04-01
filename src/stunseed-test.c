@@ -43,11 +43,13 @@ static void draw_player(Player this) {
 }
 
 static void receive_shit() {
-    stunseed_webtorrent_id id;
     static uint8_t buf[2] = {0};
-    int size = sizeof(buf);
 
-    while (stunseed_recv(CHAN_GAME, id, buf, &size)) {
+    while (stunseed_poll(CHAN_GAME)) {
+        stunseed_webtorrent_id id;
+        int size = sizeof(buf);
+        stunseed_recv(CHAN_GAME, id, buf, &size);
+
         TinyBucket* cell = TinyDictGet(peers, id);
         if (!cell) {
             Player player = {0};
@@ -55,9 +57,11 @@ static void receive_shit() {
             cell = TinyDictPut(peers, id, &player, sizeof(player));
         }
 
+        if (cell)
+            stunseed_warn("DAMN %d", cell->key);
+
         Player* player = cell ? cell->data : NULL;
         if (player) {
-            player->color = GREEN;
             player->x = buf[0] * NETSCALE;
             player->y = buf[1] * NETSCALE;
         }

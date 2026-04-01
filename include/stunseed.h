@@ -22,9 +22,9 @@ extern "C" {
 #define STUNSEED_DEFAULT_STUN "stun.l.google.com:19302"
 
 /// The default torrent tracker to leech into for WebRTC signalling.
-// #define STUNSEED_DEFAULT_TRACKER "wss://tracker.webtorrent.dev"
+// #define STUNSEED_DEFAULT_TRACKER "wss://tracker.webtorrent.dev" // no workey :(
+// #define STUNSEED_DEFAULT_TRACKER "wss://tracker.btorrent.xyz" // unexpected code 200 :(
 #define STUNSEED_DEFAULT_TRACKER "wss://tracker.openwebtorrent.com"
-// #define STUNSEED_DEFAULT_TRACKER "wss://echo.websocket.org"
 
 // ----------- //
 // AUXILIARIES //
@@ -56,8 +56,8 @@ void stunseed_set_channel_count(int);
 typedef char stunseed_webtorrent_id[STUNSEED_ID_LENGTH + 1];
 
 typedef struct stunseed_peer_info {
-    stunseed_webtorrent_id id;
     struct stunseed_peer_info* next;
+    stunseed_webtorrent_id id;
 } stunseed_peer_info;
 
 /// Generates a WebTorrent ID string into an output buffer.
