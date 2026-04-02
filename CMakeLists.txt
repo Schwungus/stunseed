@@ -63,7 +63,7 @@ if(CMAKE_SYSTEM_NAME MATCHES "Emscripten")
         GIT_TAG v0.4.0)
     list(APPEND LIBS datachannel-wasm)
 
-    target_link_options(stunseed PUBLIC -sASYNCIFY -sEXPORTED_RUNTIME_METHODS=HEAPU32)
+    target_link_options(stunseed PUBLIC -sASYNCIFY -sEXPORTED_RUNTIME_METHODS=HEAPU32,HEAPU8)
     target_compile_options(stunseed PUBLIC -O3) # the emscripten manual recommends this
 else()
     FetchContent_Declare(datachannel
