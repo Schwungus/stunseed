@@ -34,6 +34,17 @@ struct stunseed_packet {
     stunseed_packet(const std::string& peer, const std::vector<std::byte>& data) : peer(peer), payload(data) {}
 };
 
+static void (*stunseed_peer_join_cb)(const stunseed_webtorrent_id) = nullptr;
+static void (*stunseed_peer_leave_cb)(const stunseed_webtorrent_id) = nullptr;
+
+extern "C" void stunseed_on_peer_join(void (*cb)(const stunseed_webtorrent_id)) {
+    stunseed_peer_join_cb = cb;
+}
+
+extern "C" void stunseed_on_peer_leave(void (*cb)(const stunseed_webtorrent_id)) {
+    stunseed_peer_leave_cb = cb;
+}
+
 static struct stunseed_glue_t {
     // NOTE: indexed by offer id.
     std::unordered_map<std::string, stunseed_connection> connections;
@@ -74,11 +85,13 @@ struct stunseed_connection {
 
     void setup_dc() {
         dc->onOpen([this]() {
-            stunseed_info("%s connected", remote_id->c_str());
+            if (stunseed_peer_join_cb)
+                stunseed_peer_join_cb(remote_id->c_str());
         });
 
         dc->onClosed([this]() {
-            stunseed_info("%s died", remote_id->c_str());
+            if (stunseed_peer_leave_cb)
+                stunseed_peer_leave_cb(remote_id->c_str());
             stunseed_glue.connections.erase(offer_id);
         });
 

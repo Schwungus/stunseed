@@ -97,6 +97,20 @@ void stunseed_disconnect();
 /// Call this every tick to re-announce yourself to the other peers every now and then.
 void stunseed_update();
 
+// --------- //
+// CALLBACKS //
+// --------- //
+
+/// Sets a function to call every time a peer joins.
+///
+/// Event data: connected peer's id.
+void stunseed_on_peer_join(void (*)(const stunseed_webtorrent_id));
+
+/// Sets a function to call every time a peer leaves.
+///
+/// Event data: disconnected peer's id.
+void stunseed_on_peer_leave(void (*)(const stunseed_webtorrent_id));
+
 // ------- //
 // LOGGING //
 // ------- //

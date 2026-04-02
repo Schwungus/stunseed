@@ -71,14 +71,25 @@ static void send_shit() {
         stunseed_send(CHAN_GAME, peer->id, buf, sizeof(buf));
 }
 
+static void on_join(const stunseed_webtorrent_id id) {
+    stunseed_info("hi, %s!", id);
+}
+
+static void on_leave(const stunseed_webtorrent_id id) {
+    stunseed_info("bye, %s!", id);
+    TinyDictErase(peers, id);
+}
+
 int main(int argc, char* argv[]) {
     (void)argc, (void)argv;
 
     InitWindow(800, 600, "stunseed");
     stunseed_set_logger(tracer);
-    stunseed_set_channel_count(MAX_CHAN);
-
     SetTargetFPS(FRAMERATE);
+
+    stunseed_set_channel_count(MAX_CHAN);
+    stunseed_on_peer_join(on_join);
+    stunseed_on_peer_leave(on_leave);
 
     reset();
 
