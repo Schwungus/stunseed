@@ -21,7 +21,7 @@ using namespace std::string_literals;
 static const std::vector<std::string> stunseed_webtorrent_trackers{
     "wss://tracker.openwebtorrent.com",
     "wss://tracker.webtorrent.dev",
-    // "wss://tracker.btorrent.xyz" // unexpected code 200 :(
+    "wss://tracker.btorrent.xyz",
 };
 
 static constexpr const uint64_t stunseed_announce_interval = 3000000000;
