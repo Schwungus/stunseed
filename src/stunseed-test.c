@@ -44,9 +44,9 @@ static void draw_player(Player this) {
 
 static void receive_shit() {
     static uint8_t buf[2] = {0};
+    static stunseed_webtorrent_id id = {0};
 
     while (stunseed_poll(CHAN_GAME)) {
-        stunseed_webtorrent_id id;
         int size = sizeof(buf);
         stunseed_recv(CHAN_GAME, id, buf, &size);
 
@@ -56,9 +56,6 @@ static void receive_shit() {
             player.color = GREEN;
             cell = TinyDictPut(peers, id, &player, sizeof(player));
         }
-
-        if (cell)
-            stunseed_warn("DAMN %d", cell->key);
 
         Player* player = cell ? cell->data : NULL;
         if (player) {
