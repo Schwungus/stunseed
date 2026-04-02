@@ -12,6 +12,7 @@ void stunseed_init() {
     extern void stunseed_glue_init();
     stunseed_glue_init();
 
+    stunseed_set_channel_count(1);
     srand(stunseed_time_ns());
 
     extern void stunseed_glue_set_rtc_logger();
@@ -21,6 +22,8 @@ void stunseed_init() {
 }
 
 void stunseed_shutdown() {
+    stunseed_disconnect();
+
     extern void stunseed_glue_cleanup();
     stunseed_glue_cleanup();
 

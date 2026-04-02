@@ -111,11 +111,9 @@ extern "C" void stunseed_disconnect() {
 
 extern "C" void stunseed_glue_init() {
     rtc::Preload();
-    stunseed_set_channel_count(1);
 }
 
 extern "C" void stunseed_glue_cleanup() {
-    stunseed_disconnect();
     rtc::Cleanup();
 }
 
