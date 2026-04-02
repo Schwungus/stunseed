@@ -204,7 +204,7 @@ extern "C" bool stunseed_recv(int chan, char* sender, void* data, int bufsize, i
 
 extern "C" void stunseed_send(int chan, const char* destination, const void* data, int size) {
     if (chan < 0 || chan >= stunseed_glue.recv.size())
-        return; // TODO: document recv==send channel count limitation
+        return;
 
     stunseed_connection* conn = nullptr;
 

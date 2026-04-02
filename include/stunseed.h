@@ -42,7 +42,10 @@ void stunseed_init();
 /// Call this once before exiting the program to clean up after stunseed.
 void stunseed_shutdown();
 
-/// Call this to set the amount of channels stunseed can receive on. Defaults to just 1.
+/// Call this to set the amount of channels stunseed can send and receive on. Defaults to just 1.
+///
+/// Keep in mind you may not send to a channel you cannot receive on. You are expected to send and receive on the same
+/// channel numbers as other peers, and with the same channel count.
 void stunseed_set_channel_count(int);
 
 // ----- //
@@ -72,10 +75,15 @@ stunseed_peer_info* stunseed_get_peers();
 /// Returns true if there is a message awaiting on the specified channel.
 bool stunseed_poll(int chan);
 
-// TODO: document.
+/// Outputs the next payload in the specified data channel's receiving queue. Returns false if there is no payload and
+/// true otherwise.
+///
+/// Any of the pointers can be set to NULL if you don't need such information about the payload.
 bool stunseed_recv(int chan, char* sender, void* data, int bufsize, int* outsize);
 
-// TODO: document.
+/// Sends a payload on the specified data channel to a peer identified by their id string.
+///
+/// Fails silently; there are no reliability guarantees (yet).
 void stunseed_send(int chan, const char* destination, const void* data, int size);
 
 // ---------- //
