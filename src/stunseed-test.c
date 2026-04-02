@@ -50,7 +50,7 @@ static void receive_shit() {
         int size = sizeof(buf);
         stunseed_recv(CHAN_GAME, id, buf, &size);
 
-        TinyBucket* cell = TinyDictGet(peers, id);
+        TinyBucket* cell = TinyDictFind(peers, id);
         if (!cell) {
             Player player = {0};
             player.color = GREEN;

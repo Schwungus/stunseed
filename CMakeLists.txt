@@ -86,7 +86,7 @@ if(STUNSEED_BUILD_TEST)
 
     FetchContent_Declare(S_tructures
         GIT_REPOSITORY https://github.com/Schwungus/S_tructures.git
-        GIT_TAG d0b30e90bb12c1bf02c600400baedcafc43390ac)
+        GIT_TAG 0f575a95a3d0b98a1f48824b83dbef2fb9537d05)
 
     FetchContent_MakeAvailable(raylib S_tructures)
 
