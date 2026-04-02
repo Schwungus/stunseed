@@ -18,7 +18,11 @@
 
 using namespace std::string_literals;
 
-struct stunseed_connection;
+static const std::vector<std::string> stunseed_webtorrent_trackers{
+    "wss://tracker.openwebtorrent.com",
+    "wss://tracker.webtorrent.dev",
+    // "wss://tracker.btorrent.xyz" // unexpected code 200 :(
+};
 
 static constexpr const uint64_t stunseed_announce_interval = 3000000000;
 static const rtc::Configuration stunseed_rtc_config{
@@ -45,16 +49,31 @@ extern "C" void stunseed_on_peer_leave(void (*cb)(const stunseed_webtorrent_id))
     stunseed_peer_leave_cb = cb;
 }
 
+struct stunseed_sock {
+    std::unique_ptr<rtc::WebSocket> ws;
+    std::vector<nlohmann::json> out_queue;
+
+    stunseed_sock(rtc::WebSocket* ws) : ws(ws) {}
+
+    ~stunseed_sock() {
+        if (ws->isOpen())
+            ws->close();
+    }
+};
+
+struct stunseed_connection;
+
 static struct stunseed_glue_t {
     // NOTE: indexed by offer id.
     std::unordered_map<std::string, stunseed_connection> connections;
     std::vector<std::vector<stunseed_packet>> recv;
 
-    std::unique_ptr<rtc::WebSocket> tracker_sock;
-    std::vector<nlohmann::json> ws_out;
+    std::unordered_map<std::string, stunseed_sock> socks;
     std::optional<std::string> lobby_id, peer_id;
 
-    stunseed_glue_t() : tracker_sock(new rtc::WebSocket) {}
+    stunseed_glue_t() {
+        reset();
+    }
 
     friend void stunseed_disconnect();
 
@@ -63,16 +82,15 @@ static struct stunseed_glue_t {
         lobby_id = peer_id = std::nullopt;
 
         size_t old_recv_size = recv.size();
-        connections.clear(), recv.clear(), ws_out.clear();
+        connections.clear(), recv.clear();
         recv.resize(old_recv_size);
 
-        if (tracker_sock != nullptr && tracker_sock->isOpen())
-            tracker_sock->close();
-        tracker_sock.reset(new rtc::WebSocket);
+        socks.clear();
+        for (const auto& tracker : stunseed_webtorrent_trackers)
+            socks.emplace(tracker, new rtc::WebSocket);
     }
 } stunseed_glue;
 
-static void stunseed_send_json(nlohmann::json);
 static void stunseed_announce();
 
 struct stunseed_connection {
@@ -140,7 +158,10 @@ static void stunseed_rtc_log(rtc::LogLevel level, const std::string& line) {
 }
 
 extern "C" bool stunseed_is_connected() {
-    return stunseed_glue.tracker_sock != nullptr && stunseed_glue.tracker_sock->isOpen();
+    for (const auto& pair : stunseed_glue.socks)
+        if (pair.second.ws->isOpen())
+            return true;
+    return false;
 }
 
 extern "C" const char* stunseed_get_our_id() {
@@ -159,8 +180,10 @@ extern "C" stunseed_peer_info* stunseed_get_peers() {
 
     for (const auto& pair : stunseed_glue.connections) {
         const auto& peer = pair.second;
+
         if (!peer.remote_id.has_value() || peer.dc == nullptr)
             continue;
+
         if (cur > mem)
             (cur - 1)->next = cur;
 
@@ -227,14 +250,14 @@ extern "C" void stunseed_send(int chan, const char* destination, const void* dat
     conn->dc->send((const rtc::byte*)buf.data(), buf.size());
 }
 
-static void stunseed_send_json(nlohmann::json obj) {
+static void stunseed_send_json(const std::string& tracker, nlohmann::json obj) {
     obj.update({
         {"info_hash", stunseed_glue.lobby_id},
         {"peer_id", stunseed_glue.peer_id},
         {"action", "announce"},
     });
 
-    stunseed_glue.ws_out.push_back(std::move(obj));
+    stunseed_glue.socks.at(tracker).out_queue.push_back(std::move(obj));
 }
 
 static void stunseed_announce() {
@@ -251,13 +274,17 @@ static void stunseed_announce() {
         });
     }
 
-    stunseed_send_json({
-        {"downloaded", 0},
-        {"left", 1000},
-        {"uploaded", 0},
-        {"numwant", STUNSEED_MAX_PEERS},
-        {"offers", offers},
-    });
+    for (const auto& pair : stunseed_glue.socks) {
+        nlohmann::json obj{
+            {"downloaded", 0},
+            {"left", 1000},
+            {"uploaded", 0},
+            {"numwant", STUNSEED_MAX_PEERS},
+            {"offers", offers},
+        };
+
+        stunseed_send_json(pair.first, std::move(obj));
+    }
 }
 
 extern "C" void stunseed_update() {
@@ -270,21 +297,22 @@ extern "C" void stunseed_update() {
     if (!last_update || now - last_update > stunseed_announce_interval)
         stunseed_announce(), last_update = now;
 
-    for (const auto& obj : stunseed_glue.ws_out) {
-        stunseed_glue.tracker_sock->send(obj.dump());
-        // stunseed_warn("SENT: %s", obj.dump().c_str());
+    for (auto& pair : stunseed_glue.socks) {
+        auto& sock = pair.second;
+
+        if (!sock.ws->isOpen())
+            continue;
+
+        for (const auto& obj : sock.out_queue)
+            sock.ws->send(obj.dump());
+
+        sock.out_queue.clear();
     }
-
-    stunseed_glue.ws_out.clear();
-}
-
-static void stunseed_on_ws_open() {
-    stunseed_info("sock open");
 }
 
 static void stunseed_on_ws_closed() {
-    stunseed_info("sock closed");
-    stunseed_disconnect();
+    if (!stunseed_is_connected())
+        stunseed_disconnect();
 }
 
 static void stunseed_on_ws_message(const rtc::message_variant& msg) {
@@ -343,10 +371,11 @@ static void stunseed_prepare() {
     stunseed_generate_webtorrent_id(stunseed_glue.peer_id->data());
     stunseed_info("we are ID=%s", stunseed_glue.peer_id->c_str());
 
-    stunseed_glue.tracker_sock->onOpen(stunseed_on_ws_open);
-    stunseed_glue.tracker_sock->onClosed(stunseed_on_ws_closed);
-    stunseed_glue.tracker_sock->onMessage(stunseed_on_ws_message);
-    stunseed_glue.tracker_sock->open(STUNSEED_DEFAULT_TRACKER);
+    for (auto& [tracker, sock] : stunseed_glue.socks) {
+        sock.ws->onClosed(stunseed_on_ws_closed);
+        sock.ws->onMessage(stunseed_on_ws_message);
+        sock.ws->open(tracker);
+    }
 }
 
 extern "C" void stunseed_glue_set_rtc_logger() {

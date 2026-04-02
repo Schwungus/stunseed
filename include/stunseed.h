@@ -21,11 +21,6 @@ extern "C" {
 /// The default STUN server to use.
 #define STUNSEED_DEFAULT_STUN "stun.l.google.com:19302"
 
-/// The default torrent tracker to leech into for WebRTC signalling.
-// #define STUNSEED_DEFAULT_TRACKER "wss://tracker.webtorrent.dev" // no workey :(
-// #define STUNSEED_DEFAULT_TRACKER "wss://tracker.btorrent.xyz" // unexpected code 200 :(
-#define STUNSEED_DEFAULT_TRACKER "wss://tracker.openwebtorrent.com"
-
 // ----------- //
 // AUXILIARIES //
 // ----------- //
