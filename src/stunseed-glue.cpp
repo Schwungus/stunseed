@@ -165,29 +165,26 @@ extern "C" stunseed_peer_info* stunseed_get_peers() {
     return root;
 }
 
-extern "C" bool stunseed_poll(int chan) {
+extern "C" bool stunseed_recv(int chan, char* sender, void* data, int bufsize, int* outsize) {
     if (chan < 0 || chan >= stunseed_glue.recv.size())
         return false;
-    return !stunseed_glue.recv[chan].empty();
-}
 
-extern "C" bool stunseed_recv(int chan, char* sender, void* data, int* size) {
-    if (!stunseed_poll(chan))
+    if (stunseed_glue.recv[chan].empty())
         return false;
 
     auto& queue = stunseed_glue.recv[chan];
     const stunseed_packet packet = queue.front();
     queue.erase(queue.begin());
 
-    if (size && packet.payload.size() != *size)
+    if (packet.payload.size() > bufsize)
         return false;
 
     if (sender)
         memcpy(sender, packet.peer.data(), sizeof(stunseed_webtorrent_id));
     if (data)
         memcpy(data, packet.payload.data(), packet.payload.size());
-    if (size)
-        *size = (int)packet.payload.size();
+    if (outsize)
+        *outsize = (int)packet.payload.size();
 
     return true;
 }

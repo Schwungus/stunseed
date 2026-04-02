@@ -46,10 +46,7 @@ static void receive_shit() {
     static uint8_t buf[2] = {0};
     static stunseed_webtorrent_id id = {0};
 
-    while (stunseed_poll(CHAN_GAME)) {
-        int size = sizeof(buf);
-        stunseed_recv(CHAN_GAME, id, buf, &size);
-
+    while (stunseed_recv(CHAN_GAME, id, buf, sizeof(buf), NULL)) {
         TinyBucket* cell = TinyDictFind(peers, id);
         if (!cell) {
             Player player = {0};

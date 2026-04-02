@@ -73,7 +73,7 @@ stunseed_peer_info* stunseed_get_peers();
 bool stunseed_poll(int chan);
 
 // TODO: document.
-bool stunseed_recv(int chan, char* sender, void* data, int* size);
+bool stunseed_recv(int chan, char* sender, void* data, int bufsize, int* outsize);
 
 // TODO: document.
 void stunseed_send(int chan, const char* destination, const void* data, int size);
