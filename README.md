@@ -4,7 +4,7 @@
 
 <img align="right" src=".github/assets/stunseed256.png">
 
-A **STUN**ning P2P networking solution for games that doesn't require hosting and works both **natively** AND **in the browser**. Don't read the name backwards.
+A **STUN**ning P2P networking solution for games that doesn't require hosting, and works **both natively** ***and*** **in the browser**. Don't read the name backwards!
 
 TODO: explain the project further.
 
