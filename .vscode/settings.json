@@ -4,7 +4,8 @@
     "C_Cpp.intelliSenseEngine": "disabled",
     "files.associations": {
         "*.h.in": "c",
-        "*.h": "c"
+        "*.h": "c",
+        ".clang*": "yaml"
     },
     "files.exclude": {
         "**/.git": true,
