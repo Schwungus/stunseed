@@ -149,7 +149,7 @@ extern "C" void stunseed_glue_cleanup() {
 }
 
 static void stunseed_rtc_log(rtc::LogLevel level, const std::string& line) {
-    stunseed_log_level log_level = stunseed_log_level::STUNSEED_LOG_INFO;
+    auto log_level = stunseed_log_level::STUNSEED_LOG_INFO;
 
     if (level != rtc::LogLevel::Info)
         log_level = stunseed_log_level::STUNSEED_LOG_WARN;
