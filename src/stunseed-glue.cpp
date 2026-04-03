@@ -75,10 +75,14 @@ struct stunseed_sock {
     }
 };
 
-struct stunseed_peer;
+struct stunseed_connection;
+struct stunseed_offer;
 
 static struct stunseed_glue_t {
-    std::unordered_map<std::string, stunseed_peer> peers;
+    std::unordered_map<std::string, stunseed_connection> peers; // indexed by PEER ID
+
+    std::unordered_map<std::string, stunseed_offer> offers; // indexed by OFFER ID
+
     std::unordered_map<std::string, stunseed_sock> socks;
     std::vector<std::vector<stunseed_payload>> recv;
     std::optional<std::string> lobby_id = std::nullopt, peer_id = std::nullopt;
@@ -98,38 +102,24 @@ static struct stunseed_glue_t {
     }
 } stunseed_glue;
 
-struct stunseed_peer {
-    std::shared_ptr<rtc::PeerConnection> pc;
-    std::shared_ptr<rtc::DataChannel> dc;
-    std::optional<std::string> peer_id;
+struct stunseed_channel {
+    std::shared_ptr<rtc::PeerConnection> pc = nullptr;
+    std::shared_ptr<rtc::DataChannel> dc = nullptr;
     bool dead = false;
 
-    stunseed_peer() : pc(new rtc::PeerConnection(stunseed_rtc_config)), dc(pc->createDataChannel("bruh")) {
-        setup_dc();
-    }
-
-    stunseed_peer(const std::string& peer_id)
-        : pc(new rtc::PeerConnection(stunseed_rtc_config)), dc(nullptr), peer_id(peer_id) {
-        pc->onDataChannel([this](const auto& dc) {
-            this->dc = dc;
-            setup_dc();
-        });
-    }
-
-  private:
-    void setup_dc() {
-        dc->onOpen([this]() {
+    void setup_dc(const std::string& peer_id) {
+        dc->onOpen([this, peer_id]() {
             if (stunseed_peer_join_cb)
-                stunseed_peer_join_cb(peer_id->c_str());
+                stunseed_peer_join_cb(peer_id.c_str());
         });
 
-        dc->onClosed([this]() {
+        dc->onClosed([this, peer_id]() {
             if (stunseed_peer_leave_cb)
-                stunseed_peer_leave_cb(peer_id->c_str());
+                stunseed_peer_leave_cb(peer_id.c_str());
             dead = true;
         });
 
-        dc->onMessage([this](const auto& msg) {
+        dc->onMessage([this, peer_id](const auto& msg) {
             if (!std::holds_alternative<std::vector<std::byte>>(msg))
                 return;
 
@@ -145,8 +135,30 @@ struct stunseed_peer {
             memcpy(&sub[0], &payload[STUNSEED_PAYLOAD_HEADER_SIZE], sub.size());
 
             auto& queue = stunseed_glue.recv[chan];
-            queue.emplace_back(*peer_id, std::move(sub));
+            queue.emplace_back(peer_id, std::move(sub));
         });
+    }
+};
+
+struct stunseed_offer : stunseed_channel {
+    stunseed_offer() {
+        pc = std::make_shared<rtc::PeerConnection>(stunseed_rtc_config);
+        dc = pc->createDataChannel("bruh");
+    }
+};
+
+struct stunseed_connection : stunseed_channel {
+    stunseed_connection(const std::string& peer_id) {
+        pc = std::make_shared<rtc::PeerConnection>(stunseed_rtc_config);
+        pc->onDataChannel([this, peer_id](const auto& dc) {
+            this->dc = dc;
+            setup_dc(peer_id);
+        });
+    }
+
+    stunseed_connection(stunseed_offer&& offer, const std::string& peer_id) {
+        pc = offer.pc, dc = offer.dc;
+        setup_dc(peer_id);
     }
 };
 
@@ -197,8 +209,8 @@ extern "C" stunseed_peer_info* stunseed_get_peers() {
     stunseed_peer_info *cur = mem, *root = nullptr;
     size_t count = 0;
 
-    for (const auto& [_, peer] : stunseed_glue.peers) {
-        if (!peer.peer_id.has_value() || peer.dc == nullptr)
+    for (const auto& [id, peer] : stunseed_glue.peers) {
+        if (peer.dc == nullptr)
             continue;
 
         if (cur > mem)
@@ -208,7 +220,7 @@ extern "C" stunseed_peer_info* stunseed_get_peers() {
             break;
 
         memset(cur, 0, sizeof(*cur));
-        memcpy(cur->id, peer.peer_id->data(), STUNSEED_ID_LENGTH);
+        memcpy(cur->id, id.data(), STUNSEED_ID_LENGTH);
 
         if (!root)
             root = cur;
@@ -248,12 +260,12 @@ extern "C" void stunseed_send(int chan, const char* destination, const void* dat
     if (chan < 0 || chan >= stunseed_glue.recv.size())
         return;
 
-    stunseed_peer* conn = nullptr;
+    stunseed_connection* conn = nullptr;
 
-    for (auto& [_, peer] : stunseed_glue.peers) {
-        if (!peer.peer_id.has_value() || peer.dc == nullptr || !peer.dc->isOpen())
+    for (auto& [id, peer] : stunseed_glue.peers) {
+        if (peer.dc == nullptr || !peer.dc->isOpen())
             continue;
-        if (!memcmp(peer.peer_id->data(), destination, STUNSEED_ID_LENGTH)) {
+        if (!memcmp(id.data(), destination, STUNSEED_ID_LENGTH)) {
             conn = &peer;
             break;
         }
@@ -268,11 +280,26 @@ extern "C" void stunseed_send(int chan, const char* destination, const void* dat
     conn->dc->send((const rtc::byte*)buf.data(), buf.size());
 }
 
+static void stunseed_send_json(nlohmann::json obj) {
+    obj.update({
+        {"action", "announce"},
+        {"info_hash", stunseed_glue.lobby_id},
+        {"peer_id", stunseed_glue.peer_id},
+        {"downloaded", 0},
+        {"left", 1000},
+        {"uploaded", 0},
+        {"numwant", STUNSEED_MAX_PEERS},
+    });
+
+    for (auto& [_, sock] : stunseed_glue.socks)
+        sock.out_queue.push_back(obj);
+}
+
 static void stunseed_announce() {
     std::vector<nlohmann::json> offers;
 
-    for (const auto& [id, peer] : stunseed_glue.peers) {
-        const std::optional<std::string>& sdp = peer.pc->localDescription();
+    for (const auto& [id, offer] : stunseed_glue.offers) {
+        const std::optional<std::string>& sdp = offer.pc->localDescription();
 
         if (!sdp.has_value())
             continue;
@@ -283,19 +310,9 @@ static void stunseed_announce() {
         });
     }
 
-    nlohmann::json obj{
-        {"action", "announce"},
-        {"info_hash", stunseed_glue.lobby_id},
-        {"peer_id", stunseed_glue.peer_id},
-        {"downloaded", 0},
-        {"left", 1000},
-        {"uploaded", 0},
-        {"numwant", STUNSEED_MAX_PEERS},
+    stunseed_send_json({
         {"offers", offers},
-    };
-
-    for (auto& [_, sock] : stunseed_glue.socks)
-        sock.out_queue.push_back(obj);
+    });
 }
 
 extern "C" void stunseed_update() {
@@ -344,16 +361,33 @@ static void stunseed_on_ws_message(const rtc::message_variant& msg) {
     std::string peer_id = obj["peer_id"];
     peer_id.resize(STUNSEED_ID_LENGTH);
 
-    if (!stunseed_glue.peers.contains(peer_id))
-        stunseed_glue.peers.emplace(peer_id, stunseed_peer(peer_id));
+    if (obj.contains("offer")) {
+        if (!stunseed_glue.peers.contains(peer_id))
+            stunseed_glue.peers.emplace(peer_id, stunseed_connection(peer_id));
 
-    auto& peer = stunseed_glue.peers.at(peer_id);
-    peer.peer_id = peer_id;
+        auto& peer = stunseed_glue.peers.at(peer_id);
 
-    if (obj.contains("offer"))
+        peer.pc->onLocalCandidate([&peer, offer_id, peer_id](const auto&) {
+            const std::string sdp = *peer.pc->localDescription();
+            stunseed_send_json({
+                {"offer_id", offer_id},
+                {"to_peer_id", peer_id},
+                {"answer", {{"type", "answer"}, {"sdp", sdp}}},
+            });
+        });
+
         peer.pc->setRemoteDescription(rtc::Description(obj["offer"]["sdp"], "offer"));
-    else if (obj.contains("answer"))
+    } else if (obj.contains("answer")) {
+        if (!stunseed_glue.offers.contains(offer_id))
+            return;
+
+        auto offer = stunseed_glue.offers.at(offer_id);
+        stunseed_glue.offers.erase(offer_id);
+        stunseed_glue.peers.emplace(peer_id, stunseed_connection(std::move(offer), peer_id));
+
+        auto& peer = stunseed_glue.peers.at(peer_id);
         peer.pc->setRemoteDescription(rtc::Description(obj["answer"]["sdp"], "answer"));
+    }
 }
 
 static void stunseed_prepare() {
@@ -375,10 +409,10 @@ extern "C" void stunseed_glue_set_rtc_logger() {
 }
 
 static void stunseed_create_offers() {
-    while (stunseed_glue.peers.size() < STUNSEED_MAX_PEERS) {
+    while (stunseed_glue.offers.size() < STUNSEED_MAX_PEERS) {
         std::string offer_id(STUNSEED_ID_LENGTH, 0);
         stunseed_generate_webtorrent_id(offer_id.data());
-        stunseed_glue.peers.emplace(offer_id, stunseed_peer());
+        stunseed_glue.offers.emplace(offer_id, stunseed_offer());
     }
 }
 
