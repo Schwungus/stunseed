@@ -34,11 +34,12 @@ static const rtc::Configuration stunseed_rtc_config{
 
 #define STUNSEED_PAYLOAD_HEADER_SIZE (1)
 
-struct stunseed_packet {
-    std::string peer;
-    std::vector<std::byte> payload;
+struct stunseed_payload {
+    std::string peer; // could be the sender or, in the future, the recipient.
+    std::vector<std::byte> contents;
 
-    stunseed_packet(const std::string& peer, const std::vector<std::byte>& data) : peer(peer), payload(data) {}
+    stunseed_payload(const std::string& peer, const std::vector<std::byte>& contents)
+        : peer(peer), contents(contents) {}
 };
 
 static void (*stunseed_peer_join_cb)(const stunseed_webtorrent_id) = nullptr;
@@ -78,7 +79,7 @@ struct stunseed_peer;
 
 static struct stunseed_glue_t {
     std::unordered_map<std::string, stunseed_peer> peers;
-    std::vector<std::vector<stunseed_packet>> recv;
+    std::vector<std::vector<stunseed_payload>> recv;
     std::unordered_map<std::string, stunseed_sock> socks;
     std::optional<std::string> lobby_id, peer_id;
     uint64_t last_announce = 0;
@@ -107,6 +108,7 @@ struct stunseed_peer {
         });
     }
 
+  private:
     void setup_dc() {
         dc->onOpen([this]() {
             if (stunseed_peer_join_cb)
@@ -216,18 +218,20 @@ extern "C" bool stunseed_recv(int chan, char* sender, void* data, int bufsize, i
         return false;
 
     auto& queue = stunseed_glue.recv[chan];
-    const stunseed_packet packet = queue.front();
+    const auto payload = queue.front();
     queue.erase(queue.begin());
 
-    if (packet.payload.size() > bufsize)
+    if (payload.contents.size() > bufsize) {
+        stunseed_warn("skipping size=%d payload: buffer size=%d insufficient", payload.contents.size(), bufsize);
         return false;
+    }
 
     if (sender)
-        memcpy(sender, packet.peer.data(), sizeof(stunseed_webtorrent_id));
+        memcpy(sender, payload.peer.data(), sizeof(stunseed_webtorrent_id));
     if (data)
-        memcpy(data, packet.payload.data(), packet.payload.size());
+        memcpy(data, payload.contents.data(), payload.contents.size());
     if (outsize)
-        *outsize = (int)packet.payload.size();
+        *outsize = (int)payload.contents.size();
 
     return true;
 }
