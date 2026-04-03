@@ -114,26 +114,6 @@ struct stunseed_channel {
     }
 };
 
-static void stunseed_send_json(const std::string&, nlohmann::json);
-
-static void stunseed_setup_trickle_pc(
-    const std::string& tracker, const std::shared_ptr<stunseed_channel>& peer, const std::string& remote_peer_id) {
-    std::weak_ptr<stunseed_channel> peerw = peer;
-
-    peer->pc->onLocalCandidate([peerw, tracker, remote_peer_id](const auto& cand) {
-        if (peerw.expired())
-            return;
-
-        const std::string sdp = *peerw.lock()->pc->localDescription();
-        const nlohmann::json obj = {
-            {"to_peer_id", remote_peer_id},
-            {"candidate", {{"candidate", sdp}, {"sdpMid", cand.mid()}}},
-        };
-
-        stunseed_send_json(tracker, obj);
-    });
-}
-
 static void stunseed_setup_dc(const std::shared_ptr<stunseed_channel>& peer, const std::string& peer_id) {
     std::weak_ptr<stunseed_channel> peerw = peer;
 
@@ -308,11 +288,10 @@ static void stunseed_announce() {
     std::vector<nlohmann::json> offers;
 
     for (const auto& [id, offer] : stunseed_glue.offers) {
-        const std::optional<std::string>& sdp = offer->pc->localDescription();
-
-        if (!sdp.has_value())
+        if (offer->pc->gatheringState() != rtc::PeerConnection::GatheringState::Complete)
             continue;
 
+        const std::string sdp = *offer->pc->localDescription();
         offers.push_back({
             {"offer", {{"type", "offer"}, {"sdp", sdp}}},
             {"offer_id", id},
@@ -398,7 +377,6 @@ static void stunseed_on_ws_message(const std::string& tracker, const rtc::messag
         std::weak_ptr<stunseed_channel> peerw = peer;
 
         peer->pc = std::make_shared<rtc::PeerConnection>(stunseed_rtc_config);
-        stunseed_setup_trickle_pc(tracker, peer, remote_peer_id);
 
         peer->pc->onDataChannel([peerw, remote_peer_id](const auto& dc) {
             if (!peerw.expired()) {
@@ -428,15 +406,7 @@ static void stunseed_on_ws_message(const std::string& tracker, const rtc::messag
         stunseed_setup_dc(offer, remote_peer_id);
 
         auto [it, _] = stunseed_glue.peers.emplace(remote_peer_id, offer);
-        stunseed_setup_trickle_pc(tracker, it->second, it->first);
         it->second->pc->setRemoteDescription(rtc::Description((std::string)obj["answer"]["sdp"], ""));
-    } else if (obj.contains("candidate")) {
-        if (!stunseed_glue.peers.contains(remote_peer_id))
-            return;
-
-        auto& peer = stunseed_glue.peers.at(remote_peer_id);
-        const auto& c = obj["candidate"];
-        peer->pc->setRemoteDescription(rtc::Description((std::string)c["candidate"], ""));
     }
 }
 
