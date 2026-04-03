@@ -118,10 +118,16 @@ static void stunseed_send_json(const std::string&, nlohmann::json);
 
 static void stunseed_setup_trickle_pc(
     const std::string& tracker, const std::shared_ptr<stunseed_channel>& peer, const std::string& remote_peer_id) {
-    peer->pc->onLocalCandidate([tracker, remote_peer_id](const auto& cand) {
+    std::weak_ptr<stunseed_channel> peerw = peer;
+
+    peer->pc->onLocalCandidate([peerw, tracker, remote_peer_id](const auto& cand) {
+        if (peerw.expired())
+            return;
+
+        const std::string sdp = *peerw.lock()->pc->localDescription();
         const nlohmann::json obj = {
             {"to_peer_id", remote_peer_id},
-            {"candidate", {{"candidate", std::string(cand)}, {"sdpMid", cand.mid()}}},
+            {"candidate", {{"candidate", sdp}, {"sdpMid", cand.mid()}}},
         };
 
         stunseed_send_json(tracker, obj);
@@ -413,7 +419,7 @@ static void stunseed_on_ws_message(const std::string& tracker, const rtc::messag
         });
 
         stunseed_glue.peers.emplace(remote_peer_id, peer);
-        peer->pc->setRemoteDescription(rtc::Description(obj["offer"]["sdp"], "offer"));
+        peer->pc->setRemoteDescription(rtc::Description((std::string)obj["offer"]["sdp"], ""));
     } else if (obj.contains("answer")) {
         if (!stunseed_glue.offers.contains(offer_id))
             return;
@@ -423,14 +429,14 @@ static void stunseed_on_ws_message(const std::string& tracker, const rtc::messag
 
         auto [it, _] = stunseed_glue.peers.emplace(remote_peer_id, offer);
         stunseed_setup_trickle_pc(tracker, it->second, it->first);
-        it->second->pc->setRemoteDescription(rtc::Description(obj["answer"]["sdp"], "answer"));
+        it->second->pc->setRemoteDescription(rtc::Description((std::string)obj["answer"]["sdp"], ""));
     } else if (obj.contains("candidate")) {
         if (!stunseed_glue.peers.contains(remote_peer_id))
             return;
 
         auto& peer = stunseed_glue.peers.at(remote_peer_id);
         const auto& c = obj["candidate"];
-        peer->pc->addRemoteCandidate(rtc::Candidate(c["candidate"], c["sdpMid"]));
+        peer->pc->setRemoteDescription(rtc::Description((std::string)c["candidate"], ""));
     }
 }
 
