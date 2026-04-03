@@ -27,7 +27,8 @@ static const std::vector<std::string> stunseed_webtorrent_trackers{
     // "wss://tracker.btorrent.xyz",
 };
 
-static constexpr const uint64_t stunseed_announce_interval = 5000000000;
+static constexpr const uint64_t stunseed_announce_interval = 5000000000, stunseed_timeout_threshold = 5000000000,
+                                stunseed_ping_interval = 2000000000;
 static const rtc::Configuration stunseed_rtc_config{
     .iceServers = {"stun:"s + STUNSEED_DEFAULT_STUN},
 };
@@ -104,6 +105,8 @@ static struct stunseed_glue_t {
 struct stunseed_channel {
     std::shared_ptr<rtc::PeerConnection> pc = nullptr;
     std::shared_ptr<rtc::DataChannel> dc = nullptr;
+
+    uint64_t last_received_ping = 0, last_sent_ping = 0;
     bool dead = false;
 
     bool is_open() const {
@@ -112,7 +115,9 @@ struct stunseed_channel {
 };
 
 static void stunseed_setup_dc(const std::shared_ptr<stunseed_channel>& peer, const std::string& peer_id) {
-    const auto do_open = [peer, peer_id]() {
+    std::weak_ptr<stunseed_channel> peerw = peer;
+
+    const auto do_open = [peer_id]() {
         if (stunseed_peer_join_cb)
             stunseed_peer_join_cb(peer_id.c_str());
     };
@@ -122,29 +127,36 @@ static void stunseed_setup_dc(const std::shared_ptr<stunseed_channel>& peer, con
     else
         peer->dc->onOpen(do_open);
 
-    peer->dc->onClosed([peer, peer_id]() {
-        if (stunseed_peer_leave_cb)
-            stunseed_peer_leave_cb(peer_id.c_str());
-        peer->dead = true;
+    peer->dc->onClosed([peerw, peer_id]() {
+        if (!peerw.expired())
+            peerw.lock()->dead = true;
     });
 
-    peer->dc->onMessage([peer, peer_id](const auto& msg) {
-        if (!std::holds_alternative<std::vector<std::byte>>(msg))
+    peer->dc->onMessage([peerw, peer_id](const auto& msg) {
+        if (peerw.expired())
             return;
 
-        const auto payload = std::get<std::vector<std::byte>>(msg);
-        if (payload.size() < STUNSEED_PAYLOAD_HEADER_SIZE)
-            return;
+        auto peer = peerw.lock();
 
-        const auto chan = (uint8_t)payload[0];
-        if (chan >= stunseed_glue.recv.size())
-            return;
+        if (std::holds_alternative<std::string>(msg)) {
+            const auto payload = std::get<std::string>(msg);
+            if (payload == "ping")
+                peer->last_received_ping = stunseed_time_ns();
+        } else {
+            const auto payload = std::get<std::vector<std::byte>>(msg);
+            if (payload.size() < STUNSEED_PAYLOAD_HEADER_SIZE)
+                return;
 
-        std::vector<std::byte> sub(payload.size() - STUNSEED_PAYLOAD_HEADER_SIZE); // TODO: unkludge
-        memcpy(&sub[0], &payload[STUNSEED_PAYLOAD_HEADER_SIZE], sub.size());
+            const auto chan = (uint8_t)payload[0];
+            if (chan >= stunseed_glue.recv.size())
+                return;
 
-        auto& queue = stunseed_glue.recv[chan];
-        queue.emplace_back(peer_id, std::move(sub));
+            std::vector<std::byte> sub(payload.size() - STUNSEED_PAYLOAD_HEADER_SIZE); // TODO: unkludge
+            memcpy(&sub[0], &payload[STUNSEED_PAYLOAD_HEADER_SIZE], sub.size());
+
+            auto& queue = stunseed_glue.recv[chan];
+            queue.emplace_back(peer_id, std::move(sub));
+        }
     });
 }
 
@@ -297,14 +309,30 @@ static void stunseed_announce() {
 }
 
 extern "C" void stunseed_update() {
+    const uint64_t now = stunseed_time_ns();
+
+    for (auto& [_, peer] : stunseed_glue.peers) {
+        if (!peer->last_received_ping) {
+            peer->last_received_ping = now;
+        } else if (now - peer->last_received_ping >= stunseed_timeout_threshold) {
+            peer->dead = true;
+            continue;
+        }
+
+        if (peer->is_open() && (!peer->last_sent_ping || now - peer->last_sent_ping >= stunseed_ping_interval))
+            peer->dc->send("ping"), peer->last_sent_ping = now;
+    }
+
     std::erase_if(stunseed_glue.peers, [](const auto& pair) {
-        return pair.second->dead;
+        const auto& [id, peer] = pair;
+        const auto dead = peer->dead;
+        if (dead && stunseed_peer_leave_cb)
+            stunseed_peer_leave_cb(id.c_str());
+        return dead;
     });
 
     if (!stunseed_is_connected())
         return;
-
-    const uint64_t now = stunseed_time_ns();
 
     if (!stunseed_glue.last_announce || now - stunseed_glue.last_announce > stunseed_announce_interval)
         stunseed_announce(), stunseed_glue.last_announce = now;
@@ -347,14 +375,19 @@ static void stunseed_on_ws_message(const std::string& tracker, const rtc::messag
             return;
 
         auto peer = std::make_shared<stunseed_channel>();
+        std::weak_ptr<stunseed_channel> peerw = peer;
+
         peer->pc = std::make_shared<rtc::PeerConnection>(stunseed_rtc_config);
 
-        peer->pc->onDataChannel([peer, remote_peer_id](const auto& dc) {
-            peer->dc = dc;
-            stunseed_setup_dc(peer, remote_peer_id);
+        peer->pc->onDataChannel([peerw, remote_peer_id](const auto& dc) {
+            if (!peerw.expired()) {
+                auto peer = peerw.lock();
+                peer->dc = dc;
+                stunseed_setup_dc(peer, remote_peer_id);
+            }
         });
 
-        peer->pc->onLocalDescription([peer, tracker, offer_id, remote_peer_id](const auto& desc) {
+        peer->pc->onLocalDescription([tracker, offer_id, remote_peer_id](const auto& desc) {
             const std::string sdp = desc;
             const nlohmann::json obj{
                 {"offer_id", offer_id},
