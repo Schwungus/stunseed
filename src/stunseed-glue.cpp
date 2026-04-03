@@ -66,11 +66,11 @@ struct stunseed_sock {
     }
 
     bool is_open() const {
-        return !dead && ws->isOpen();
+        return !dead && ws != nullptr && ws->isOpen();
     }
 
     ~stunseed_sock() {
-        if (ws->isOpen())
+        if (ws != nullptr && ws->isOpen())
             ws->close();
     }
 };
@@ -79,12 +79,20 @@ struct stunseed_peer;
 
 static struct stunseed_glue_t {
     std::unordered_map<std::string, stunseed_peer> peers;
-    std::vector<std::vector<stunseed_payload>> recv;
     std::unordered_map<std::string, stunseed_sock> socks;
-    std::optional<std::string> lobby_id, peer_id;
+    std::vector<std::vector<stunseed_payload>> recv;
+    std::optional<std::string> lobby_id = std::nullopt, peer_id = std::nullopt;
     uint64_t last_announce = 0;
 
     stunseed_glue_t() {
+        reset();
+    }
+
+    void reset() {
+        peers.clear(), recv.clear(), lobby_id.reset(), peer_id.reset();
+        last_announce = 0;
+
+        socks.clear();
         for (const auto& tracker : stunseed_webtorrent_trackers)
             socks.insert_or_assign(tracker, stunseed_sock(tracker));
     }
@@ -121,11 +129,11 @@ struct stunseed_peer {
             dead = true;
         });
 
-        dc->onMessage([this](auto msg) {
+        dc->onMessage([this](const auto& msg) {
             if (!std::holds_alternative<std::vector<std::byte>>(msg))
                 return;
 
-            auto payload = std::get<std::vector<std::byte>>(msg);
+            const auto payload = std::get<std::vector<std::byte>>(msg);
             if (payload.size() < STUNSEED_PAYLOAD_HEADER_SIZE)
                 return;
 
@@ -144,7 +152,7 @@ struct stunseed_peer {
 
 extern "C" void stunseed_disconnect() {
     const size_t old_recv_size = stunseed_glue.recv.size();
-    stunseed_glue = stunseed_glue_t();
+    stunseed_glue.reset();
     stunseed_glue.recv.resize(old_recv_size);
 }
 
