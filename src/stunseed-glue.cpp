@@ -311,6 +311,9 @@ extern "C" void stunseed_update() {
     const uint64_t now = stunseed_time_ns();
 
     for (auto& [_, peer] : stunseed_glue.peers) {
+        if (!peer->is_open())
+            continue;
+
         if (!peer->last_received_ping) {
             peer->last_received_ping = now;
         } else if (now - peer->last_received_ping >= stunseed_timeout_threshold) {
@@ -318,7 +321,7 @@ extern "C" void stunseed_update() {
             continue;
         }
 
-        if (peer->is_open() && (!peer->last_sent_ping || now - peer->last_sent_ping >= stunseed_ping_interval))
+        if (!peer->last_sent_ping || now - peer->last_sent_ping >= stunseed_ping_interval)
             peer->dc->send("ping"), peer->last_sent_ping = now;
     }
 
